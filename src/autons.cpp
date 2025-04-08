@@ -1,4 +1,5 @@
 #include "main.h"
+#include "subsystems.hpp"
 
 
 // These are out of 127
@@ -42,47 +43,65 @@ void default_constants() {
 }
 
 void sixRingBlue(){
-  
+  chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void sixRingRed(){
+  chassis.pid_odom_behavior_set(ez::shortest);
+}
 
+void sixRingBlueMiddle(){
+  chassis.pid_odom_behavior_set(ez::shortest);
+}
+
+void sixRingRedMiddle(){
+  chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void BlueLeftRush(){
-  
+  chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void RedRightRush(){
-  
+  chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void BlueLeftRushTug(){
-
+  chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void RedRightRushTug(){
-
+  chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void QualBlueLeftRush(){
-  
+  chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void QualRedRightRush(){
-
+  chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void BlueRightAWP(){
-  
+  chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void RedLeftAWP(){
-  
+  chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void test(){
-  chassis.pid_drive_set(8_in, 45, false);
+  chassis.pid_odom_behavior_set(ez::shortest);
+
+  armPID.target_set(getArmTargetPosition(ArmTarget::GRAB_RING));
+  arm_wait();
+
+  chassis.pid_odom_set({{24_in, 24_in, 45_deg}
+  ,fwd, 110});
+  chassis.pid_wait_quick();
+
+  chassis.pid_odom_set({{0_in, 0_in}
+  , rev, 110});
   chassis.pid_wait();
 }
 
@@ -159,7 +178,6 @@ void interfered_example() {
   chassis.pid_turn_set(90_deg, TURN_SPEED);
   chassis.pid_wait();
 }
-
 
 // Odom Drive PID
 void odom_drive_example() {
@@ -248,7 +266,7 @@ void measure_offsets() {
     chassis.drive_imu_reset();
     chassis.drive_sensor_reset();
     chassis.drive_brake_set(MOTOR_BRAKE_HOLD);
-    chassis.odom_xyt_set(0_in, 0_in, 0_deg);
+
     double imu_start = chassis.odom_theta_get();
     double target = i % 2 == 0 ? 90 : 270;  // Switch the turn target every run from 270 to 90
 

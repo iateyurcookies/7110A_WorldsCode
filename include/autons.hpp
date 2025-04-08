@@ -21,4 +21,6 @@ void QualBlueLeftRush();
 void QualRedRightRush();
 void sixRingRed();
 void sixRingBlue();
+void sixRingRedMiddle();
+void sixRingBlueMiddle();
 void test();
