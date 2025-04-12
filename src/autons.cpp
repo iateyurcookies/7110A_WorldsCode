@@ -7,6 +7,13 @@ const int DRIVE_SPEED = 110;
 const int TURN_SPEED = 90;
 const int SWING_SPEED = 110;
 
+// Arm positions
+const float HOME = 5;
+const float LOADING = 11;
+const float SCORING = 138;
+const float TIPPING = 205;
+const float SCORE_ALLIANCE = 145;
+
 void default_constants() {
   // P, I, D, and Start I
   chassis.pid_drive_constants_set(20.0, 0.0, 100.0);         // Fwd/rev constants, used for odom and non odom motions
@@ -33,7 +40,7 @@ void default_constants() {
 
   // The amount that turns are prioritized over driving in odom motions
   // - if you have tracking wheels, you can run this higher.  1.0 is the max
-  chassis.odom_turn_bias_set(0.9);
+  chassis.odom_turn_bias_set(0.6);
 
   chassis.odom_look_ahead_set(7_in);           // This is how far ahead in the path the robot looks at
   chassis.odom_boomerang_distance_set(16_in);  // This sets the maximum distance away from target that the carrot point can be
@@ -93,14 +100,13 @@ void RedLeftAWP(){
 void test(){
   chassis.pid_odom_behavior_set(ez::shortest);
 
-  armPID.target_set(getArmTargetPosition(ArmTarget::GRAB_RING));
-  arm_wait();
+  chassis.pid_odom_set({
+    {{24_in, 10_in}, fwd, 110},
+    {{12_in, 20_in}, fwd, 110},
+    {{0_in, 30_in}, fwd, 110}});
+  chassis.pid_wait();
 
-  chassis.pid_odom_set({{24_in, 24_in, 45_deg}
-  ,fwd, 110});
-  chassis.pid_wait_quick();
-
-  chassis.pid_odom_set({{0_in, 0_in}
+  chassis.pid_odom_set({{0_in, 0_in, 0_deg}
   , rev, 110});
   chassis.pid_wait();
 }
