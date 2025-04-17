@@ -1,3 +1,4 @@
+#include "EZ-Template/util.hpp"
 #include "main.h"
 #include "subsystems.hpp"
 
@@ -20,7 +21,7 @@ void default_constants() {
   chassis.pid_heading_constants_set(11.0, 0.0, 20.0);        // Holds the robot straight while going forward without odom
   chassis.pid_turn_constants_set(3.0, 0.05, 20.0, 15.0);     // Turn in place constants
   chassis.pid_swing_constants_set(6.0, 0.0, 65.0);           // Swing constants
-  chassis.pid_odom_angular_constants_set(6.5, 0.0, 52.5);    // Angular control for odom motions
+  chassis.pid_odom_angular_constants_set(8, 0.0, 60);    // Angular control for odom motions
   chassis.pid_odom_boomerang_constants_set(5.8, 0.0, 32.5);  // Angular control for boomerang motions
 
   // Exit conditions
@@ -40,11 +41,11 @@ void default_constants() {
 
   // The amount that turns are prioritized over driving in odom motions
   // - if you have tracking wheels, you can run this higher.  1.0 is the max
-  chassis.odom_turn_bias_set(0.6);
+  chassis.odom_turn_bias_set(.6);
 
   chassis.odom_look_ahead_set(7_in);           // This is how far ahead in the path the robot looks at
   chassis.odom_boomerang_distance_set(16_in);  // This sets the maximum distance away from target that the carrot point can be
-  chassis.odom_boomerang_dlead_set(0.625);     // This handles how aggressive the end of boomerang motions are
+  chassis.odom_boomerang_dlead_set(0.5);     // This handles how aggressive the end of boomerang motions are
 
   chassis.pid_angle_behavior_set(ez::shortest);  // Changes the default behavior for turning, this defaults it to the shortest path there
 }
@@ -57,14 +58,6 @@ void sixRingRed(){
   chassis.pid_odom_behavior_set(ez::shortest);
 }
 
-void sixRingBlueMiddle(){
-  chassis.pid_odom_behavior_set(ez::shortest);
-}
-
-void sixRingRedMiddle(){
-  chassis.pid_odom_behavior_set(ez::shortest);
-}
-
 void BlueLeftRush(){
   chassis.pid_odom_behavior_set(ez::shortest);
 }
@@ -73,16 +66,31 @@ void RedRightRush(){
   chassis.pid_odom_behavior_set(ez::shortest);
 }
 
-void BlueLeftRushTug(){
+void BlueMiddlePositive(){
   chassis.pid_odom_behavior_set(ez::shortest);
 }
 
-void RedRightRushTug(){
+void RedMiddlePositive(){
+  chassis.pid_odom_behavior_set(ez::shortest);
+}
+void BlueMiddleNegative(){
+  chassis.pid_odom_behavior_set(ez::shortest);
+}
+
+void RedMiddleNegative(){
   chassis.pid_odom_behavior_set(ez::shortest);
 }
 
 void QualBlueLeftRush(){
   chassis.pid_odom_behavior_set(ez::shortest);
+
+  // Put down doinker and rush goal
+
+  // Pull back goal, release doinker, turn around and clamp
+
+  // Score preload
+
+  // 
 }
 
 void QualRedRightRush(){
@@ -98,17 +106,13 @@ void RedLeftAWP(){
 }
 
 void test(){
-  chassis.pid_odom_behavior_set(ez::shortest);
+  chassis.pid_odom_behavior_set(ez::longest);
 
   chassis.pid_odom_set({
-    {{24_in, 10_in}, fwd, 110},
-    {{12_in, 20_in}, fwd, 110},
-    {{0_in, 30_in}, fwd, 110}});
+    {{0_in, 12_in}, fwd, 85},
+    {{24_in, 24_in}, fwd, 85}});
   chassis.pid_wait();
 
-  chassis.pid_odom_set({{0_in, 0_in, 0_deg}
-  , rev, 110});
-  chassis.pid_wait();
 }
 
 void motion_chaining() {
@@ -252,60 +256,60 @@ void odom_boomerang_injected_pure_pursuit_example() {
   chassis.pid_wait();
 }
 
-// Calculate the offsets of your tracking wheels
-void measure_offsets() {
-  // Number of times to test
-  int iterations = 10;
+// // Calculate the offsets of your tracking wheels
+// void measure_offsets() {
+//   // Number of times to test
+//   int iterations = 10;
 
-  // Our final offsets
-  double l_offset = 0.0, r_offset = 0.0, b_offset = 0.0, f_offset = 0.0;
+//   // Our final offsets
+//   double l_offset = 0.0, r_offset = 0.0, b_offset = 0.0, f_offset = 0.0;
 
-  // Reset all trackers if they exist
-  if (chassis.odom_tracker_left != nullptr) chassis.odom_tracker_left->reset();
-  if (chassis.odom_tracker_right != nullptr) chassis.odom_tracker_right->reset();
-  if (chassis.odom_tracker_back != nullptr) chassis.odom_tracker_back->reset();
-  if (chassis.odom_tracker_front != nullptr) chassis.odom_tracker_front->reset();
+//   // Reset all trackers if they exist
+//   if (chassis.odom_tracker_left != nullptr) chassis.odom_tracker_left->reset();
+//   if (chassis.odom_tracker_right != nullptr) chassis.odom_tracker_right->reset();
+//   if (chassis.odom_tracker_back != nullptr) chassis.odom_tracker_back->reset();
+//   if (chassis.odom_tracker_front != nullptr) chassis.odom_tracker_front->reset();
   
-  for (int i = 0; i < iterations; i++) {
-    // Reset pid targets and get ready for running an auton
-    chassis.pid_targets_reset();
-    chassis.drive_imu_reset();
-    chassis.drive_sensor_reset();
-    chassis.drive_brake_set(MOTOR_BRAKE_HOLD);
+//   for (int i = 0; i < iterations; i++) {
+//     // Reset pid targets and get ready for running an auton
+//     chassis.pid_targets_reset();
+//     chassis.drive_imu_reset();
+//     chassis.drive_sensor_reset();
+//     chassis.drive_brake_set(MOTOR_BRAKE_HOLD);
 
-    double imu_start = chassis.odom_theta_get();
-    double target = i % 2 == 0 ? 90 : 270;  // Switch the turn target every run from 270 to 90
+//     double imu_start = chassis.odom_theta_get();
+//     double target = i % 2 == 0 ? 90 : 270;  // Switch the turn target every run from 270 to 90
 
-    // Turn to target at half power
-    chassis.pid_turn_set(target, 63, ez::raw);
-    chassis.pid_wait();
-    pros::delay(250);
+//     // Turn to target at half power
+//     chassis.pid_turn_set(target, 63, ez::raw);
+//     chassis.pid_wait();
+//     pros::delay(250);
 
-    // Calculate delta in angle
-    double t_delta = util::to_rad(fabs(util::wrap_angle(chassis.odom_theta_get() - imu_start)));
+//     // Calculate delta in angle
+//     double t_delta = util::to_rad(fabs(util::wrap_angle(chassis.odom_theta_get() - imu_start)));
 
-    // Calculate delta in sensor values that exist
-    double l_delta = chassis.odom_tracker_left != nullptr ? chassis.odom_tracker_left->get() : 0.0;
-    double r_delta = chassis.odom_tracker_right != nullptr ? chassis.odom_tracker_right->get() : 0.0;
-    double b_delta = chassis.odom_tracker_back != nullptr ? chassis.odom_tracker_back->get() : 0.0;
-    double f_delta = chassis.odom_tracker_front != nullptr ? chassis.odom_tracker_front->get() : 0.0;
+//     // Calculate delta in sensor values that exist
+//     double l_delta = chassis.odom_tracker_left != nullptr ? chassis.odom_tracker_left->get() : 0.0;
+//     double r_delta = chassis.odom_tracker_right != nullptr ? chassis.odom_tracker_right->get() : 0.0;
+//     double b_delta = chassis.odom_tracker_back != nullptr ? chassis.odom_tracker_back->get() : 0.0;
+//     double f_delta = chassis.odom_tracker_front != nullptr ? chassis.odom_tracker_front->get() : 0.0;
 
-    // Calculate the radius that the robot traveled
-    l_offset += l_delta / t_delta;
-    r_offset += r_delta / t_delta;
-    b_offset += b_delta / t_delta;
-    f_offset += f_delta / t_delta;
-  }
+//     // Calculate the radius that the robot traveled
+//     l_offset += l_delta / t_delta;
+//     r_offset += r_delta / t_delta;
+//     b_offset += b_delta / t_delta;
+//     f_offset += f_delta / t_delta;
+//   }
 
-  // Average all offsets
-  l_offset /= iterations;
-  r_offset /= iterations;
-  b_offset /= iterations;
-  f_offset /= iterations;
+//   // Average all offsets
+//   l_offset /= iterations;
+//   r_offset /= iterations;
+//   b_offset /= iterations;
+//   f_offset /= iterations;
 
-  // Set new offsets to trackers that exist
-  if (chassis.odom_tracker_left != nullptr) chassis.odom_tracker_left->distance_to_center_set(l_offset);
-  if (chassis.odom_tracker_right != nullptr) chassis.odom_tracker_right->distance_to_center_set(r_offset);
-  if (chassis.odom_tracker_back != nullptr) chassis.odom_tracker_back->distance_to_center_set(b_offset);
-  if (chassis.odom_tracker_front != nullptr) chassis.odom_tracker_front->distance_to_center_set(f_offset);
-}
+//   // Set new offsets to trackers that exist
+//   if (chassis.odom_tracker_left != nullptr) chassis.odom_tracker_left->distance_to_center_set(l_offset);
+//   if (chassis.odom_tracker_right != nullptr) chassis.odom_tracker_right->distance_to_center_set(r_offset);
+//   if (chassis.odom_tracker_back != nullptr) chassis.odom_tracker_back->distance_to_center_set(b_offset);
+//   if (chassis.odom_tracker_front != nullptr) chassis.odom_tracker_front->distance_to_center_set(f_offset);
+// }
