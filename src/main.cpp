@@ -1,4 +1,5 @@
 #include "main.h"
+#include <cstdio>
 #include <string>
 #include "EZ-Template/PID.hpp"
 #include "EZ-Template/util.hpp"
@@ -52,10 +53,10 @@ rd::Selector selector({
     {"Testing", test},
     {"BRush+", BlueLeftRush},
     {"RRush+", RedRightRush},
-    {"QualB", QualBlueLeftRush},
-    {"QualR", QualRedRightRush},
-    {"Blue4-",sixRingBlue},
-    {"Red4-", sixRingRed},
+    {"QB-(5+1)", QualBlueLeftRingRush},
+    {"QR-(5+1)", QualRedRightRingRush},
+    {"Blue6-",sixRingBlueElim},
+    {"Red6-", sixRingRedElim},
     {"BMid-",BlueMiddleNegative},
     {"RMid-", RedMiddleNegative},
     {"BMid+",BlueMiddlePositive},
@@ -124,7 +125,7 @@ pros::Task Arm_Task(arm_task);
 
 // Color sorting for the intake
 void color_sort() {
-  pros::delay(1500);
+  pros::delay(2500);
 
   while (true) {
     // Basically if the distance sensor senses the ring close to it, it looks at what color it is and if it needs to sort
@@ -145,7 +146,7 @@ void color_sort() {
 // pros::Task Color_Sort(color_sort); 
 
 void console_display(){   //-------------------------> printing important data to the brain
-  pros::delay(2000);
+  pros::delay(2500);
   while (true) {
     // Odom stuff
     console.printf("X_COORD: %.3f \n",chassis.odom_x_get()); //------------> x, y, and heading values are printed
@@ -155,16 +156,19 @@ void console_display(){   //-------------------------> printing important data t
     // Drive temps
     console.println("MOTOR_TEMPS:"); //-----------------------------------> Prints the motor temperatures for each motor
     console.printf("[L1 %.0fC  ", FrontL.get_temperature()); 
-    console.printf("R1 %.0fC] ", FrontR.get_temperature());
+    console.printf("R1 %.0fC] \n", FrontR.get_temperature());
     console.printf("[L2 %.0fC  ", MidL.get_temperature());
-    console.printf("R2 %.0fC] ", MidR.get_temperature());
+    console.printf("R2 %.0fC] \n", MidR.get_temperature());
     console.printf("[L3 %.0fC  ", BackL.get_temperature());
-    console.printf("R3 %.0fC] ", BackR.get_temperature());
-    // Intake & arm
-    console.printf("[INTAKE %.0fC] \n", Intake.get_temperature());
-    console.printf("[ARM %.0fC] \n", ArmL.get_temperature());
+    console.printf("R3 %.0fC] \n\n", BackR.get_temperature());
+    // // Intake & arm
+    // console.printf("[INTAKE %.0fC]  ", Intake.get_temperature());
+    // console.printf("Intake Rotation [ %.0f ] \n", intakeRotation.get_position());
+    // // console.printf("Optical Hue [ %.0f ]  ", optical.get_hue());
+    // console.printf("Ring Color [ %s ] \n\n", to_string(currentRingColor));
+    // console.printf("[ARM %.0fC]  ", ArmL.get_temperature());
+    // console.printf("Arm Position", to_string(currentArmPosition));
     
-
     pros::delay(ez::util::DELAY_TIME);
     console.clear(); //------------------------------------------------------> Refreshes screen after delay to save resources
   }
@@ -177,9 +181,9 @@ void auto_color_sort_select() {
     team = BLUE_TEAM;
   else if(selector.get_auton()->name == "BRushTug")
     team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "QualB")
+  else if(selector.get_auton()->name == "QB-(5+1)")
     team = BLUE_TEAM; 
-  else if(selector.get_auton()->name == "Blue4-")
+  else if(selector.get_auton()->name == "Blue6-")
     team = BLUE_TEAM;
   else if(selector.get_auton()->name == "Blue4-M")
     team = BLUE_TEAM;  
@@ -189,9 +193,9 @@ void auto_color_sort_select() {
     team = RED_TEAM;
   else if(selector.get_auton()->name == "RRushTug")
     team = RED_TEAM;
-  else if(selector.get_auton()->name == "QualR")
+  else if(selector.get_auton()->name == "QR-(5+1)")
     team = RED_TEAM;
-  else if(selector.get_auton()->name == "Red4-")
+  else if(selector.get_auton()->name == "Red6-")
     team = RED_TEAM;
   else if(selector.get_auton()->name == "Red4-M")
     team = RED_TEAM;
@@ -288,9 +292,8 @@ void controls() {
   if (master.get_digital_new_press(DIGITAL_L1))
     toggleColorSort();
 
-  if (master.get_digital_new_press(DIGITAL_L2)){
+  if (master.get_digital_new_press(DIGITAL_L2))
     sortOverride = !sortOverride;
-  }
 
 //--------------------------------------------------------------Pistons-----------------------------------------------------------------
   
