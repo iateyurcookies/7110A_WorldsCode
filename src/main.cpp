@@ -18,14 +18,16 @@ enum ArmPosition { //--------------------------------> Enums for readability
   HOME = 0,
   GRAB_RING,
   SCORE_RING,
+  AIMING,
   TIPPING_GOAL,
   NUM_POSITIONS
 };
 
 const float ArmHeights[NUM_POSITIONS] = {
   5,    //---------------------------------------> Home
-  130,   //--------------------------------------> Loading Ring
-  1010,  //--------------------------------------> Scoring Ring
+  150,   //--------------------------------------> Loading Ring
+  1080,  //--------------------------------------> Scoring Ring
+  1500,  //--------------------------------------> Aiming
   1700,  //--------------------------------------> Tipping Goal
 };
 
@@ -92,11 +94,10 @@ void initialize() {
   ArmL.tare_position();          //-----------------------> Initializes the motor encoder for the arm pid
   ArmL.set_brake_mode(MOTOR_BRAKE_HOLD);
   ArmR.set_brake_mode(MOTOR_BRAKE_HOLD);
-  Intake.tare_position();
+  intakeRotation.reset();
 
   doinker_clamp.set_value(true); //-----------------------> Sets the doinker clamp piston to false so it starts closed
   intake_piston.set_value(false);//-----------------------> Sets intake piston to false so it starts down
-  optical.set_integration_time(5);
 
   chassis.odom_tracker_back_set(&horiz_tracker);
   chassis.odom_tracker_right_set(&vert_tracker);
@@ -127,16 +128,12 @@ void color_sort() {
 
   while (true) {
     // Basically if the distance sensor senses the ring close to it, it looks at what color it is and if it needs to sort
-    getCurrentRingColor();
+    currentRingColor = getCurrentRingColor();
 
     if(!sortOverride){ //------------------------------> Only runs if override is off
       optical.set_led_pwm(100); //--------------> Lights up LED for optical sensor
-
-      // If it's the opposite color, the intake flicks it out near the top
-      if(isOppositeColor() == true){
-        flickRing();
-      }
-
+      if(currentRingColor != NONE)
+        sortRing(currentRingColor);
     } else { //----------------------------------------> Turns off led if color sort is off
       optical.set_led_pwm(0);
     }
@@ -145,10 +142,10 @@ void color_sort() {
 
     }
   }
-pros::Task Color_Sort(color_sort); 
+// pros::Task Color_Sort(color_sort); 
 
 void console_display(){   //-------------------------> printing important data to the brain
-  pros::delay(1500);
+  pros::delay(2000);
   while (true) {
     // Odom stuff
     console.printf("X_COORD: %.3f \n",chassis.odom_x_get()); //------------> x, y, and heading values are printed
@@ -166,7 +163,8 @@ void console_display(){   //-------------------------> printing important data t
     // Intake & arm
     console.printf("[INTAKE %.0fC] \n", Intake.get_temperature());
     console.printf("[ARM %.0fC] \n", ArmL.get_temperature());
-    console.printf("[ArmDeg %.4f]", ArmL.get_position());
+    
+
     pros::delay(ez::util::DELAY_TIME);
     console.clear(); //------------------------------------------------------> Refreshes screen after delay to save resources
   }
@@ -176,45 +174,45 @@ pros::Task ConsoleUpdate(console_display);
 void auto_color_sort_select() {
   // Auto selects color sort
   if/*-*/(selector.get_auton()->name == "BRush+")
-    team = false;
+    team = BLUE_TEAM;
   else if(selector.get_auton()->name == "BRushTug")
-    team = false;
+    team = BLUE_TEAM;
   else if(selector.get_auton()->name == "QualB")
-    team = false; 
+    team = BLUE_TEAM; 
   else if(selector.get_auton()->name == "Blue4-")
-    team = false;
+    team = BLUE_TEAM;
   else if(selector.get_auton()->name == "Blue4-M")
-    team = false;  
+    team = BLUE_TEAM;  
   else if(selector.get_auton()->name =="BSWP")
-    team = false;
+    team = BLUE_TEAM;
   else if(selector.get_auton()->name == "RRush+")
-    team = true;
+    team = RED_TEAM;
   else if(selector.get_auton()->name == "RRushTug")
-    team = true;
+    team = RED_TEAM;
   else if(selector.get_auton()->name == "QualR")
-    team = true;
+    team = RED_TEAM;
   else if(selector.get_auton()->name == "Red4-")
-    team = true;
+    team = RED_TEAM;
   else if(selector.get_auton()->name == "Red4-M")
-    team = true;
+    team = RED_TEAM;
   else if(selector.get_auton()->name == "RSWP")
-    team = true;
+    team = RED_TEAM;
   else if(selector.get_auton()->name == "Prog")
-    team = true;
+    team = RED_TEAM;
   else
     sortOverride = true;
 }
 
-void antiJam() {
-  if(Intake.get_actual_velocity() < 10) {
-    isSorting = true;
-    Intake.move_velocity(-400);
-    pros::delay(20);
-    Intake.move_velocity(400);
-    isSorting = false;
-  }
-}
-pros::Task AntiJamTask(antiJam);
+// void antiJam() {
+//   if(Intake.get_efficiency() == 0) {
+//     isSorting = true;
+//     Intake.move_velocity(-400);
+//     pros::delay(20);
+//     Intake.move_velocity(400);
+//     isSorting = false;
+//   }
+// }
+// pros::Task AntiJamTask(antiJam);
 
 void disabled() {
   // . . .
@@ -244,19 +242,19 @@ void controller_display() {
   // Prints what color it will sort
   if (sortOverride)
     teamStr = "*";
-  else if(team)
+  else if(team == RED_TEAM)
     teamStr = "R";
-  else if(!team)
+  else
     teamStr = "B";
 
-  if(ringCol)
+  if(currentRingColor == RED)
     ringStr = "RED";
   else
     ringStr = "BLUE";
 
   // Combines all the strings and prints it as one to the controller screen
   std::string controllerString = teamStr + " A: " + autoStr + "      ";
-  master.print(0, 1, "%s", (teamStr + " " + ringStr + " " + to_string(Intake.get_position()) + "     "));
+  master.print(0, 1, "%s", (controllerString));
 }
 
 void next_arm_preset() {
@@ -286,9 +284,11 @@ void controls() {
       autonomous();
     }
   }
-  
-  // Pressing both L1 and Up at the same time will disable color sort
-  if (master.get_digital(DIGITAL_LEFT) && master.get_digital_new_press(DIGITAL_L1)) {
+
+  if (master.get_digital_new_press(DIGITAL_L1))
+    toggleColorSort();
+
+  if (master.get_digital_new_press(DIGITAL_L2)){
     sortOverride = !sortOverride;
   }
 
@@ -351,20 +351,13 @@ void controls() {
   // Pressing R2 will intake, pressing R1 will outake, code stops if its color sorting
   if(!isSorting) {
     if(master.get_digital(DIGITAL_R1)) {
-      Intake.move_velocity(400);
+      Intake.move(127);
     } else if(master.get_digital(DIGITAL_R2)) {
-      Intake.move_velocity(-400);
-    } 
-  } else {
-    Intake.move_velocity(0);
+      Intake.move(-127);
+    } else {
+    Intake.move(0);
   }
-  
-  if (master.get_digital_new_press(DIGITAL_L1))
-    toggleColorSort();
-
-  if (master.get_digital_new_press(DIGITAL_L2))
-    Intake.move_relative(300, 400);
-
+} 
 }
 
 void opcontrol() {

@@ -1,5 +1,6 @@
 #include "EZ-Template/util.hpp"
 #include "main.h"
+#include "pros/rtos.hpp"
 #include "subsystems.hpp"
 
 
@@ -10,16 +11,16 @@ const int SWING_SPEED = 110;
 
 // Arm positions
 const float HOME = 5;
-const float LOADING = 11;
-const float SCORING = 138;
-const float TIPPING = 205;
-const float SCORE_ALLIANCE = 145;
+const float LOADING = 150;
+const float SCORING = 1080;
+const float TIPPING = 1700;
+const float SCORE_ALLIANCE = 1400;
 
 void default_constants() {
   // P, I, D, and Start I
   chassis.pid_drive_constants_set(20.0, 0.0, 100.0);         // Fwd/rev constants, used for odom and non odom motions
   chassis.pid_heading_constants_set(11.0, 0.0, 20.0);        // Holds the robot straight while going forward without odom
-  chassis.pid_turn_constants_set(3.0, 0.05, 20.0, 15.0);     // Turn in place constants
+  chassis.pid_turn_constants_set(4.5, 0.05, 30.0, 15.0);     // Turn in place constants
   chassis.pid_swing_constants_set(6.0, 0.0, 65.0);           // Swing constants
   chassis.pid_odom_angular_constants_set(8, 0.0, 60);    // Angular control for odom motions
   chassis.pid_odom_boomerang_constants_set(5.8, 0.0, 32.5);  // Angular control for boomerang motions
@@ -39,6 +40,9 @@ void default_constants() {
   chassis.slew_drive_constants_set(3_in, 70);
   chassis.slew_swing_constants_set(3_in, 80);
 
+  //IMU constant
+  chassis.drive_imu_scaler_set(1.006);
+
   // The amount that turns are prioritized over driving in odom motions
   // - if you have tracking wheels, you can run this higher.  1.0 is the max
   chassis.odom_turn_bias_set(.6);
@@ -52,10 +56,24 @@ void default_constants() {
 
 void sixRingBlue(){
   chassis.pid_odom_behavior_set(ez::shortest);
+  armPID.target_set(LOADING);
+  Intake.move(127);
+  pros::delay(250);
+  Intake.move(-5);
+  armPID.target_set(SCORE_ALLIANCE);
+  chassis.pid_odom_set(-12_in, 90);
+  chassis.pid_wait();
 }
 
 void sixRingRed(){
   chassis.pid_odom_behavior_set(ez::shortest);
+  armPID.target_set(LOADING);
+  Intake.move(127);
+  pros::delay(250);
+  Intake.move(-5);
+  armPID.target_set(SCORE_ALLIANCE);
+  chassis.pid_odom_set(-12_in, 90);
+  chassis.pid_wait();
 }
 
 void BlueLeftRush(){
@@ -95,6 +113,57 @@ void QualBlueLeftRush(){
 
 void QualRedRightRush(){
   chassis.pid_odom_behavior_set(ez::shortest);
+  chassis.odom_xyt_set(0_in, 0_in, -54.6_deg); 
+  armPID.target_set(LOADING);
+  Intake.move(127);
+  pros::delay(475);
+  Intake.move(-1);
+  armPID.target_set(SCORE_ALLIANCE);
+  pros::delay(350);
+  chassis.pid_odom_set(-12_in, 127);
+  chassis.pid_wait();
+  armPID.target_set(HOME);
+  chassis.pid_turn_set(0, 90);
+  chassis.pid_wait();
+  chassis.pid_odom_set(-32_in, 127);
+  chassis.pid_wait_until(-20_in);
+  chassis.pid_speed_max_set(60);
+  chassis.pid_wait_until(-32_in);
+  clamp_piston.set_value(true);
+  chassis.pid_wait();
+  chassis.pid_turn_set(130, 90);
+  chassis.pid_wait();
+  Intake.move_velocity(400);
+  chassis.pid_odom_set(16_in, 90);
+  chassis.pid_wait_quick();
+  chassis.pid_turn_set(100, 90);
+  chassis.pid_wait_quick();
+  chassis.pid_odom_set(16_in, 75);
+  chassis.pid_wait_quick();
+  pros::delay(250);
+  chassis.pid_odom_set(-12_in, 75);
+  chassis.pid_wait();
+  chassis.pid_turn_set(25, 90);
+  chassis.pid_wait_quick_chain();
+  chassis.pid_odom_set(14_in, 80);
+  chassis.pid_wait_quick_chain();
+  chassis.pid_odom_set(-4_in, 30);
+  chassis.pid_wait_quick();
+  chassis.pid_turn_set(0, 90);
+  chassis.pid_wait_quick();
+  Intake.move(30);
+  chassis.pid_odom_set(18_in, 127);
+  chassis.pid_wait_quick_chain();
+  chassis.pid_turn_set(46, 90);
+  chassis.pid_wait_quick();
+  Intake.move(127);
+  chassis.pid_odom_set(18_in, 127);
+  chassis.pid_wait_quick_chain();
+  pros::delay(250);
+  chassis.pid_odom_set(-4_in, 60);
+  chassis.pid_wait_quick_chain();
+  chassis.pid_odom_set(4_in, 60);
+  chassis.pid_wait_quick_chain();
 }
 
 void BlueRightAWP(){
@@ -106,11 +175,9 @@ void RedLeftAWP(){
 }
 
 void test(){
-  chassis.pid_odom_behavior_set(ez::longest);
+  chassis.pid_odom_behavior_set(ez::shortest);
 
-  chassis.pid_odom_set({
-    {{0_in, 12_in}, fwd, 85},
-    {{24_in, 24_in}, fwd, 85}});
+  chassis.pid_turn_set(90_deg, 90);
   chassis.pid_wait();
 
 }
