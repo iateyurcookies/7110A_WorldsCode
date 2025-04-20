@@ -96,6 +96,7 @@ void initialize() {
   ArmL.set_brake_mode(MOTOR_BRAKE_HOLD);
   ArmR.set_brake_mode(MOTOR_BRAKE_HOLD);
   intakeRotation.reset();
+  optical.set_integration_time(10);
 
   doinker_clamp.set_value(true); //-----------------------> Sets the doinker clamp piston to false so it starts closed
   intake_piston.set_value(false);//-----------------------> Sets intake piston to false so it starts down
@@ -128,7 +129,6 @@ void color_sort() {
   pros::delay(2500);
 
   while (true) {
-    // Basically if the distance sensor senses the ring close to it, it looks at what color it is and if it needs to sort
     currentRingColor = getCurrentRingColor();
 
     if(!sortOverride){ //------------------------------> Only runs if override is off
@@ -143,7 +143,20 @@ void color_sort() {
 
     }
   }
-// pros::Task Color_Sort(color_sort); 
+pros::Task Color_Sort(color_sort); 
+
+void anti_jam() {
+  pros::delay(2500);
+
+  while(true) {
+    if(Intake.get_efficiency() == 0){
+      Intake.move(-127);
+      pros::delay(80);
+      Intake.move(127);
+    }
+  }
+}
+pros::Task Anti_Jam(anti_jam); 
 
 void console_display(){   //-------------------------> printing important data to the brain
   pros::delay(2500);
@@ -206,17 +219,6 @@ void auto_color_sort_select() {
   else
     sortOverride = true;
 }
-
-// void antiJam() {
-//   if(Intake.get_efficiency() == 0) {
-//     isSorting = true;
-//     Intake.move_velocity(-400);
-//     pros::delay(20);
-//     Intake.move_velocity(400);
-//     isSorting = false;
-//   }
-// }
-// pros::Task AntiJamTask(antiJam);
 
 void disabled() {
   // . . .

@@ -78,10 +78,13 @@ enum Team {
 inline ColorState currentRingColor = NONE;
 inline Team  team = BLUE_TEAM;
 
-inline int  blueLowerHue  = 200;   //---------------> hue values for the sensor to detect
-inline int  blueHigherHue = 240;
-inline int  redLowerHue   = 1;
+inline int  blueLowerHue  = 170;   //---------------> hue values for the sensor to detect
+inline int  blueHigherHue = 255;
+inline int  redLowerHue   = 340;
 inline int  redHigherHue  = 10;
+
+inline int timeToTop = 120;        //---------------> for flicking the ring out of the top
+inline int reverseDelay = 80;
 
 inline bool isSorting     = false; //---------------> is the color sort active
 inline bool sortOverride  = false; //---------------> toggle for color sort being on or off
@@ -95,11 +98,16 @@ inline void toggleColorSort() {
 
 inline ColorState getCurrentRingColor() {
   float hue = optical.get_hue();
-  if/*---*/ ((hue > blueLowerHue && hue < blueHigherHue)) {
+  float saturation = optical.get_saturation();
+
+  // Adjust these hue values to detect the ring more accurately
+  if/*---*/ ((hue > blueLowerHue && hue < blueHigherHue) && saturation > .40) {
     return BLUE;
-  } else if ((hue > redLowerHue && hue < redHigherHue)) {
+  } else if ((hue > redLowerHue || hue < redHigherHue) && saturation > .35) {
     return RED;
-  } else {
+  } 
+  // If there isnt something really close to the sensor, there is not a ring
+  if(optical.get_proximity() < 240) {
     return NONE;
   }
 }
@@ -113,15 +121,13 @@ inline bool shouldSort(ColorState) {
     return false;
 }
 
-inline void moveRing(float target) {
-  float currentIntakePosition = intakeRotation.get_position();
+inline void moveRing() {
+  float pastVoltage = Intake.get_voltage();
 
-  while(abs(currentIntakePosition - target) > 100) {
-    Intake.move(127);
-  }
-  Intake.move(-127);
-  pros::delay(80);
-  Intake.move(0);
+  pros::delay(timeToTop);
+  Intake.move(-100);
+  pros::delay(reverseDelay);
+  Intake.move(pastVoltage);
 }
 
 inline static void sortRing(ColorState color){
@@ -129,10 +135,9 @@ inline static void sortRing(ColorState color){
 
   if(sortOrNah) {
     isSorting = true;
-    moveRing(8000);
+    moveRing();
     isSorting = false;
   } else {
     isSorting = false;
   }
 }
-

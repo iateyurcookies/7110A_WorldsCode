@@ -16,6 +16,12 @@ const float SCORING = 1080;
 const float TIPPING = 1700;
 const float SCORE_ALLIANCE = 1400;
 
+// Use this to intake in auto with color sort
+void intakeWithSort() {
+  if(!isSorting)
+    Intake.move(127);
+}
+
 void default_constants() {
   // P, I, D, and Start I
   chassis.pid_drive_constants_set(20.0, 0.0, 100.0);         // Fwd/rev constants, used for odom and non odom motions
@@ -26,11 +32,35 @@ void default_constants() {
   chassis.pid_odom_boomerang_constants_set(5.8, 0.0, 32.5);  // Angular control for boomerang motions
 
   // Exit conditions
-  chassis.pid_turn_exit_condition_set(90_ms, 3_deg, 250_ms, 7_deg, 500_ms, 500_ms);
+  chassis.pid_turn_exit_condition_set(
+    90_ms, 
+    3_deg,
+    250_ms, 
+    7_deg, 
+    500_ms, 
+    500_ms);
   chassis.pid_swing_exit_condition_set(90_ms, 3_deg, 250_ms, 7_deg, 500_ms, 500_ms);
-  chassis.pid_drive_exit_condition_set(90_ms, 1_in, 250_ms, 3_in, 500_ms, 500_ms);
-  chassis.pid_odom_turn_exit_condition_set(90_ms, 3_deg, 250_ms, 7_deg, 500_ms, 750_ms);
-  chassis.pid_odom_drive_exit_condition_set(90_ms, 1_in, 250_ms, 3_in, 500_ms, 750_ms);
+  chassis.pid_drive_exit_condition_set(
+    90_ms, 
+    1_in, 
+    250_ms, 
+    3_in, 
+    500_ms, 
+    500_ms);
+  chassis.pid_odom_turn_exit_condition_set(
+    90_ms, 
+    3_deg, 
+    250_ms, 
+    7_deg,
+    500_ms, 
+    750_ms);
+  chassis.pid_odom_drive_exit_condition_set(
+    90_ms, 
+    1_in, 
+    250_ms,
+    3_in, 
+    500_ms, 
+    750_ms);
   chassis.pid_turn_chain_constant_set(3_deg);
   chassis.pid_swing_chain_constant_set(5_deg);
   chassis.pid_drive_chain_constant_set(3_in);
