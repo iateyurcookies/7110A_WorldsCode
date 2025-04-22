@@ -51,19 +51,52 @@ rd::Console console;
 //                     <<Initialize auton selector>>
 rd::Selector selector({
     {"Testing", test},
+    {"QB-(5+1)", QualBlueNegative},
+    {"QR-(5+1)", QualRedNegative},
+    {"BSWP+", BluePositiveAWP},
+    {"RSWP+", RedPositiveAWP},
+    {"ElimB-",sixRingBlueElim},
+    {"ElimR-", sixRingRedElim},
     {"BRush+", BlueLeftRush},
     {"RRush+", RedRightRush},
-    {"QB-(5+1)", QualBlueLeftRingRush},
-    {"QR-(5+1)", QualRedRightRingRush},
-    {"Blue6-",sixRingBlueElim},
-    {"Red6-", sixRingRedElim},
-    {"BMid-",BlueMiddleNegative},
-    {"RMid-", RedMiddleNegative},
     {"BMid+",BlueMiddlePositive},
-   {"RMid+", RedMiddlePositive},
-   {"BSWP-", BlueRightAWP},
-   {"RSWP-", RedLeftAWP}
+   {"RMid+", RedMiddlePositive}
 });
+
+void auto_color_sort_select() {
+  // Auto selects color sort
+  if/*-*/(selector.get_auton()->name == "BRush+")
+    team = BLUE_TEAM;
+  else if(selector.get_auton()->name == "QB-(5+1)")
+    team = BLUE_TEAM; 
+  else if(selector.get_auton()->name == "ElimB-")
+    team = BLUE_TEAM;
+  else if(selector.get_auton()->name == "Blue4-M")
+    team = BLUE_TEAM;  
+  else if(selector.get_auton()->name =="BSWP+")
+    team = BLUE_TEAM;
+  else if(selector.get_auton()->name == "RRush+")
+    team = RED_TEAM;
+  else if(selector.get_auton()->name == "QR-(5+1)")
+    team = RED_TEAM;
+  else if(selector.get_auton()->name == "ElimR-")
+    team = RED_TEAM;
+  else if(selector.get_auton()->name == "Red4-M")
+    team = RED_TEAM;
+  else if(selector.get_auton()->name == "RSWP+")
+    team = RED_TEAM;
+  else if(selector.get_auton()->name == "Prog")
+    team = RED_TEAM;
+  else
+    sortOverride = true;
+}
+
+void set_starting_arm_position() {
+  if(selector.get_auton()->name == "BRush+" || selector.get_auton()->name == "RRush+")
+    currentArmPosition = HOME;
+  else
+    currentArmPosition = GRAB_RING;
+}
 
 //                                              <<Chassis constructor>>
 ez::Drive chassis(
@@ -166,68 +199,36 @@ void console_display(){   //-------------------------> printing important data t
   while (true) {
     std::string ringStr = "";
     
-  if(currentRingColor == RED)
-    ringStr = "RED";
-  else if(currentRingColor == BLUE)
-    ringStr = "BLUE";
-  else
-    ringStr = "NONE";;
+    if(currentRingColor == RED)
+      ringStr = "RED";
+    else if(currentRingColor == BLUE)
+      ringStr = "BLUE";
+    else
+      ringStr = "NONE";;
 
     // Odom stuff
-    console.printf("X_COORD: %.3f \n",chassis.odom_x_get()); //------------> x, y, and heading values are printed
-    console.printf("Y_COORD: %.3f \n", chassis.odom_y_get());
-    console.printf("HEADING: %.3f \n\n", chassis.odom_theta_get());
-    console.printf("BATTERY: %.0f % \n\n", pros::battery::get_capacity());
+    console.printf("X_COORD: [%.3f]   ",chassis.odom_x_get()); //------------> x, y, and heading values are printed
+    console.printf("Y_COORD: [%.3f]\n", chassis.odom_y_get());
+    console.printf("HEADING: [%.3f] \n\n", chassis.odom_theta_get());
+    console.printf("BATTERY: %i % \n\n", pros::battery::get_capacity());
     // Drive temps
     console.println("MOTOR_TEMPS:"); //-----------------------------------> Prints the motor temperatures for each motor
-    console.printf("[L1 %.0fC  ", FrontL.get_temperature()); 
-    console.printf("R1 %.0fC] \n", FrontR.get_temperature());
-    console.printf("[L2 %.0fC  ", MidL.get_temperature());
-    console.printf("R2 %.0fC] \n", MidR.get_temperature());
-    console.printf("[L3 %.0fC  ", BackL.get_temperature());
-    console.printf("R3 %.0fC] \n\n", BackR.get_temperature());
-    // // Intake & arm
-    // console.printf("[INTAKE %.0fC]  ", Intake.get_temperature());
+    console.printf("[L1 %iC  ", FrontL.get_temperature()); 
+    console.printf("R1 %iC] \n", FrontR.get_temperature());
+    console.printf("[L2 %iC  ", MidL.get_temperature());
+    console.printf("R2 %iC] \n", MidR.get_temperature());
+    console.printf("[L3 %iC  ", BackL.get_temperature());
+    console.printf("R3 %iC] \n\n", BackR.get_temperature());
+    // Intake & arm
+    console.printf("[INTAKE %ifC]   ", Intake.get_temperature());
     // console.printf("Ring Color [ %s ] \n\n", ringStr);
-    // console.printf("[ARM %.0fC]  ", ArmL.get_temperature());
+    console.printf("[ARM %iC]  ", ArmL.get_temperature());
     
     pros::delay(ez::util::DELAY_TIME);
     console.clear(); //------------------------------------------------------> Refreshes screen after delay to save resources
   }
 }
 pros::Task ConsoleUpdate(console_display);
-
-void auto_color_sort_select() {
-  // Auto selects color sort
-  if/*-*/(selector.get_auton()->name == "BRush+")
-    team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "BRushTug")
-    team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "QB-(5+1)")
-    team = BLUE_TEAM; 
-  else if(selector.get_auton()->name == "Blue6-")
-    team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "Blue4-M")
-    team = BLUE_TEAM;  
-  else if(selector.get_auton()->name =="BSWP")
-    team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "RRush+")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "RRushTug")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "QR-(5+1)")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "Red6-")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "Red4-M")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "RSWP")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "Prog")
-    team = RED_TEAM;
-  else
-    sortOverride = true;
-}
 
 void disabled() {
   // . . .
@@ -281,12 +282,25 @@ void controls() {
 //-----------------------------------------------------------------Setup----------------------------------------------------------------
   // Left button cycles autons
   if (master.get_digital_new_press(DIGITAL_LEFT)) {
-    selector.next_auton(true); 
+    selector.next_auton(true);
+
+    // Automatically sets starting arm position for auto
+    set_starting_arm_position(); 
+
+    // Automatically sets color sorting based on auton
+    auto_color_sort_select();
   } 
 
+  // If not connected to a comp switch, up button runs auto, otherwise it cycles back autons
   if (pros::competition::is_connected()) {
     if (master.get_digital_new_press(DIGITAL_UP)) {
       selector.prev_auton(true);
+
+      // Automatically sets starting arm position for auto
+      set_starting_arm_position(); 
+    
+      // Automatically sets color sorting based on auton
+      auto_color_sort_select();
     }
   } else if(!pros::competition::is_connected()){
     if (master.get_digital_new_press(DIGITAL_UP)) {
@@ -374,9 +388,6 @@ void opcontrol() {
 
   // Preference for driver
   chassis.drive_brake_set(MOTOR_BRAKE_COAST);
-
-  // Automatically sets color sorting based on auton
-  auto_color_sort_select();
 
   chassis.pid_tuner_disable();
 

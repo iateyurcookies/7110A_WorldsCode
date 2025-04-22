@@ -86,13 +86,85 @@ void default_constants() {
 
 void sixRingBlueElim(){
   chassis.pid_odom_behavior_set(ez::shortest);
+  chassis.odom_xyt_set(0_in, 0_in, 54.6_deg); 
+  
+  //Score alliance
   armPID.target_set(LOADING);
   Intake.move(127);
-  pros::delay(250);
+  pros::delay(600);
   Intake.move(-5);
   armPID.target_set(SCORE_ALLIANCE);
-  chassis.pid_odom_set(-12_in, 90);
+  pros::delay(350);
+
+  //Move back and turn towards mogo
+  chassis.pid_odom_set(-14_in, 75);
   chassis.pid_wait();
+  armPID.target_set(HOME);
+  
+  chassis.pid_turn_set(0, 90);
+  chassis.pid_wait();
+  
+  chassis.pid_targets_reset();                        
+  chassis.drive_imu_reset();                           
+  chassis.drive_sensor_reset();  
+  chassis.odom_xyt_set(0_in, 0_in, 0_deg); 
+  pros::delay(250);
+
+  //Drive to mogo and clamp
+  chassis.pid_odom_set(-32_in, 120);
+  chassis.pid_wait_until(-12_in);
+  chassis.pid_speed_max_set(30);
+  chassis.pid_wait_until(-32_in);
+  clamp_piston.set_value(true);
+  chassis.pid_wait();
+
+  //Turn to 4 stack and start intake
+  chassis.pid_turn_set(-130, 90);
+  chassis.pid_wait();
+  intakeWithSort();
+
+  //Swing into 4 stack and intake 2 rings
+  chassis.pid_odom_set(8_in, 90);
+  chassis.pid_wait_quick();
+  chassis.pid_swing_set(ez::LEFT_SWING, -95, 100, 20);
+  chassis.pid_wait_quick_chain();
+  chassis.pid_odom_set(4_in, 100);
+  chassis.pid_wait_quick_chain();
+  chassis.pid_odom_set(16_in, 50);
+  chassis.pid_wait();
+  pros::delay(250);
+  
+  //Back up and turn towards 2 stack
+  chassis.pid_odom_set(-8_in, 90);
+  chassis.pid_wait();
+  chassis.pid_turn_set(0, 90);
+  chassis.pid_wait_quick_chain();
+  
+  //Intake 2 stack ring
+  chassis.pid_odom_set(44_in, 75);
+  chassis.pid_wait_quick();
+  
+  //Turn towards corner and get bottom ring + 2nd corner ring
+  chassis.pid_turn_set(-52, 90);
+  chassis.pid_wait_quick();
+  intakeWithSort();
+  chassis.pid_odom_set(14_in, 75);
+  chassis.pid_wait();
+  pros::delay(200);
+  chassis.pid_odom_set(-22_in, 50);
+  chassis.pid_wait();
+
+  //Back up and turn towards alliance 2 stack
+  chassis.pid_turn_set(90, 90);
+  chassis.pid_wait();
+
+  //Go to 2 stack and intake top ring
+  intakeWithSort();
+  chassis.pid_odom_set(36_in, 127);
+  chassis.pid_wait();
+  
+  //Drive full speed to positive corner
+
 }
 
 void sixRingRedElim(){
@@ -102,22 +174,29 @@ void sixRingRedElim(){
   //Score alliance
   armPID.target_set(LOADING);
   Intake.move(127);
-  pros::delay(475);
-  Intake.move(-1);
+  pros::delay(600);
+  Intake.move(-5);
   armPID.target_set(SCORE_ALLIANCE);
   pros::delay(350);
 
   //Move back and turn towards mogo
-  chassis.pid_odom_set(-12_in, 90);
+  chassis.pid_odom_set(-14_in, 75);
   chassis.pid_wait();
   armPID.target_set(HOME);
+  
   chassis.pid_turn_set(0, 90);
   chassis.pid_wait();
+  
+  chassis.pid_targets_reset();                        
+  chassis.drive_imu_reset();                           
+  chassis.drive_sensor_reset();  
+  chassis.odom_xyt_set(0_in, 0_in, 0_deg); 
+  pros::delay(250);
 
   //Drive to mogo and clamp
-  chassis.pid_odom_set(-32_in, 127);
-  chassis.pid_wait_until(-20_in);
-  chassis.pid_speed_max_set(60);
+  chassis.pid_odom_set(-34_in, 120);
+  chassis.pid_wait_until(-12_in);
+  chassis.pid_speed_max_set(30);
   chassis.pid_wait_until(-32_in);
   clamp_piston.set_value(true);
   chassis.pid_wait();
@@ -125,82 +204,229 @@ void sixRingRedElim(){
   //Turn to 4 stack and start intake
   chassis.pid_turn_set(130, 90);
   chassis.pid_wait();
-  Intake.move_velocity(400);
+  intakeWithSort();
 
   //Swing into 4 stack and intake 2 rings
-  chassis.pid_odom_set(16_in, 90);
+  chassis.pid_odom_set(10_in, 90);
   chassis.pid_wait_quick();
-  chassis.pid_turn_set(100, 90);
+  chassis.pid_swing_set(ez::RIGHT_SWING, 95, 100, 20);
   chassis.pid_wait_quick();
-  chassis.pid_odom_set(16_in, 75);
-  chassis.pid_wait_quick();
-  pros::delay(250);
-
-  //Back up and turn towards 2 stack
-  chassis.pid_odom_set(-12_in, 75);
+  chassis.pid_odom_set(16_in, 127);
   chassis.pid_wait();
-  chassis.pid_turn_set(25, 90);
-  chassis.pid_wait_quick_chain();
-
-  //Intake 2 stack ring
-  chassis.pid_odom_set(14_in, 80);
-  chassis.pid_wait_quick_chain();
-  chassis.pid_odom_set(-4_in, 30);
-  chassis.pid_wait_quick();
-
-  //Go to corner
-  chassis.pid_turn_set(0, 90);
-  chassis.pid_wait_quick();
-  Intake.move(30);
-  chassis.pid_odom_set(18_in, 127);
-  chassis.pid_wait_quick_chain();
-
-  //Turn towards corner and get bottom ring
-  chassis.pid_turn_set(46, 90);
-  chassis.pid_wait_quick();
-  Intake.move(127);
-  chassis.pid_odom_set(18_in, 127);
-  chassis.pid_wait_quick_chain();
   pros::delay(250);
-  chassis.pid_odom_set(-4_in, 60);
+  
+  //Back up and turn towards 2 stack
+  chassis.pid_odom_set(-6_in, 90);
+  chassis.pid_wait();
+  Intake.move(0);
+  chassis.pid_turn_set(0, 80);
   chassis.pid_wait_quick_chain();
-  chassis.pid_odom_set(4_in, 60);
-  chassis.pid_wait_quick_chain();
+  
+  //Intake 2 stack ring
+  chassis.pid_odom_set(46_in, 35);
+  intakeWithSort();
+  chassis.pid_wait_until(36_in);
+  chassis.pid_speed_max_set(90);
+  chassis.pid_wait();
+  
+  //Turn towards corner and get bottom ring
+  chassis.pid_turn_set(52, 90);
+  chassis.pid_wait();
+  intakeWithSort();
+  chassis.pid_odom_set(12_in, 45);
+  chassis.pid_wait();
+  pros::delay(200);
+  chassis.pid_odom_set(-18_in, 60);
+  chassis.pid_wait();
 
   //Back up and turn towards alliance 2 stack
+  chassis.pid_turn_set(-90, 75);
+  chassis.pid_wait();
 
   //Go to 2 stack and intake top ring
+  intakeWithSort();
+  chassis.pid_odom_set(40_in, 127);
+  chassis.pid_wait();
 
-  //Go to positive corner
-
-  //Clear corner and sit with goal
+  //Drive full speed to positive corner
 
 }
 
 void BlueLeftRush(){
   chassis.pid_odom_behavior_set(ez::shortest);
+
+  //Raise the arm up and drive forward while running intake
+
+  //Once arm has ring seated raise it up enough to keep intaking 
+
+  //Drive straight to rush goal and score top ring w lady brown
+
+  //Turn while in scoring position to tip
+
+  //Return arm to home position and turn towards mogo
+
+  //Go to mogo and clamp
+
+  //Score the two stack ring that you have in your intake
+
+  //Drive to alliance stake 2 stack and get the top ring from that
+
+  //Turn around and go to positive corner
+
+  //Get both corner rings and score them
+
+  //Sweep corner
+
+  //Turn and sit in corner
+
 }
 
 void RedRightRush(){
   chassis.pid_odom_behavior_set(ez::shortest);
+
+  //Raise the arm up and drive forward while running intake
+
+  //Once arm has ring seated raise it up enough to keep intaking 
+
+  //Drive straight to rush goal and score top ring w lady brown
+
+  //Turn while in scoring position to tip
+
+  //Return arm to home position and turn towards mogo
+
+  //Go to mogo and clamp
+
+  //Score the two stack ring that you have in your intake
+
+  //Drive to alliance stake 2 stack and get the top ring from that
+
+  //Turn around and go to positive corner
+
+  //Get both corner rings and score them
+
+  //Sweep corner
+
+  //Turn and sit in corner
+
 }
 
 void BlueMiddlePositive(){
   chassis.pid_odom_behavior_set(ez::shortest);
+
+  //Change this to whatever it needs to be
+  chassis.odom_xyt_set(0_in, 0_in, 54.6_deg); 
+
+  //Score alliance
+  armPID.target_set(LOADING);
+  Intake.move(127);
+  pros::delay(600);
+  Intake.move(-5);
+  armPID.target_set(SCORE_ALLIANCE);
+  pros::delay(350);
+  
+  //Move back and turn towards mogo
+  chassis.pid_odom_set(-14_in, 75);
+  chassis.pid_wait();
+  armPID.target_set(HOME);
+  
+  chassis.pid_turn_set(0, 90);
+  chassis.pid_wait();
+  
+  chassis.pid_targets_reset();                        
+  chassis.drive_imu_reset();                           
+  chassis.drive_sensor_reset();  
+  chassis.odom_xyt_set(0_in, 0_in, 0_deg); 
+  pros::delay(250);
+
+  //Drive to mogo and clamp
+  chassis.pid_odom_set(-32_in, 120);
+  chassis.pid_wait_until(-12_in);
+  chassis.pid_speed_max_set(30);
+  chassis.pid_wait_until(-32_in);
+  clamp_piston.set_value(true);
+  chassis.pid_wait();
+
+  //Turn towards center rings
+
+  //Drive to center rings while outtaking and push the two red rings on our side away
+
+  //Turn towards blue rings and put down doinker
+
+  //Move back with blue center rings
+
+  //Put up doinker and intake 2 rings
+
+  //Turn around to 2 stack
+
+  //Go to 2 stack and intake ring
+
+  //Turn to corner
+
+  //Intake and drive to corner to get 2 corner rings
+
+  //Sweep corner and sit
+
 }
 
 void RedMiddlePositive(){
   chassis.pid_odom_behavior_set(ez::shortest);
-}
-void BlueMiddleNegative(){
-  chassis.pid_odom_behavior_set(ez::shortest);
+
+  //Change this to whatever it needs to be
+  chassis.odom_xyt_set(0_in, 0_in, -54.6_deg); 
+
+  //Score alliance
+  armPID.target_set(LOADING);
+  Intake.move(127);
+  pros::delay(600);
+  Intake.move(-5);
+  armPID.target_set(SCORE_ALLIANCE);
+  pros::delay(350);
+  
+  //Move back and turn towards mogo
+  chassis.pid_odom_set(-14_in, 75);
+  chassis.pid_wait();
+  armPID.target_set(HOME);
+  
+  chassis.pid_turn_set(0, 90);
+  chassis.pid_wait();
+  
+  chassis.pid_targets_reset();                        
+  chassis.drive_imu_reset();                           
+  chassis.drive_sensor_reset();  
+  chassis.odom_xyt_set(0_in, 0_in, 0_deg); 
+  pros::delay(250);
+
+  //Drive to mogo and clamp
+  chassis.pid_odom_set(-32_in, 120);
+  chassis.pid_wait_until(-12_in);
+  chassis.pid_speed_max_set(30);
+  chassis.pid_wait_until(-32_in);
+  clamp_piston.set_value(true);
+  chassis.pid_wait();
+
+  //Turn towards center rings
+
+  //Drive to center rings while outtaking and push the two blue rings on our side away
+
+  //Turn towards red rings and put down doinker
+
+  //Move back with red center rings
+
+  //Put up doinker and intake 2 rings
+
+  //Turn around to 2 stack
+
+  //Go to 2 stack and intake ring
+
+  //Turn to corner
+
+  //Intake and drive to corner to get 2 corner rings
+
+  //Sweep corner and sit
+  
 }
 
-void RedMiddleNegative(){
-  chassis.pid_odom_behavior_set(ez::shortest);
-}
-
-void QualBlueLeftRingRush(){
+void QualBlueNegative(){
   chassis.pid_odom_behavior_set(ez::shortest);
   chassis.odom_xyt_set(0_in, 0_in, 54.6_deg); 
   
@@ -287,7 +513,7 @@ void QualBlueLeftRingRush(){
   chassis.pid_wait();
 }
 
-void QualRedRightRingRush(){
+void QualRedNegative(){
   chassis.pid_odom_behavior_set(ez::shortest);
   chassis.odom_xyt_set(0_in, 0_in, -54.6_deg); 
   
@@ -376,70 +602,121 @@ void QualRedRightRingRush(){
   chassis.pid_wait();
 }
 
-void BlueRightAWP(){
+void BluePositiveAWP(){
   chassis.pid_odom_behavior_set(ez::shortest);
+  
+  //Change this to whatever it needs to be
+  chassis.odom_xyt_set(0_in, 0_in, 54.6_deg); 
+  
+  //Score alliance
+  armPID.target_set(LOADING);
+  Intake.move(127);
+  pros::delay(600);
+  Intake.move(-5);
+  armPID.target_set(SCORE_ALLIANCE);
+  pros::delay(350);
+
+  //Move back and turn towards mogo
+  chassis.pid_odom_set(-14_in, 75);
+  chassis.pid_wait();
+  armPID.target_set(HOME);
+  
+  chassis.pid_turn_set(0, 90);
+  chassis.pid_wait();
+  
+  chassis.pid_targets_reset();                        
+  chassis.drive_imu_reset();                           
+  chassis.drive_sensor_reset();  
+  chassis.odom_xyt_set(0_in, 0_in, 0_deg); 
+  pros::delay(250);
+
+  //Drive to mogo and clamp
+  chassis.pid_odom_set(-34_in, 120);
+  chassis.pid_wait_until(-12_in);
+  chassis.pid_speed_max_set(30);
+  chassis.pid_wait_until(-32_in);
+  clamp_piston.set_value(true);
+  chassis.pid_wait();
+
+  //Turn to alliance 2 stack
+
+  //Get top ring from 2 stack
+
+  //Go backwards and turn towards center rings
+
+  //Go to closest center ring and put down doinker
+
+  //Go back with doinker down, put up doinker, turn, and intake center ring
+
+  //Turn towards 2 stack
+
+  //Go to 2 stack and intake ring
+
+  //Stop intake about halfway up and drop mogo while turning to rush mogo
+
+  //Go backwards to rush mogo and clamp
+
+  //Score 2 stack ring
+
+  //Touch ladder
+  
 }
 
-void RedLeftAWP(){
+void RedPositiveAWP(){
   chassis.pid_odom_behavior_set(ez::shortest);
+
+  //Change this to whatever it needs to be
   chassis.odom_xyt_set(0_in, 0_in, -54.6_deg); 
   
   //Score alliance
   armPID.target_set(LOADING);
   Intake.move(127);
-  pros::delay(475);
-  Intake.move(-1);
+  pros::delay(600);
+  Intake.move(-5);
   armPID.target_set(SCORE_ALLIANCE);
   pros::delay(350);
 
   //Move back and turn towards mogo
-  chassis.pid_odom_set(-12_in, 90);
+  chassis.pid_odom_set(-14_in, 75);
   chassis.pid_wait();
   armPID.target_set(HOME);
+  
   chassis.pid_turn_set(0, 90);
   chassis.pid_wait();
+  
+  chassis.pid_targets_reset();                        
+  chassis.drive_imu_reset();                           
+  chassis.drive_sensor_reset();  
+  chassis.odom_xyt_set(0_in, 0_in, 0_deg); 
+  pros::delay(250);
 
   //Drive to mogo and clamp
-  chassis.pid_odom_set(-32_in, 127);
-  chassis.pid_wait_until(-20_in);
-  chassis.pid_speed_max_set(60);
+  chassis.pid_odom_set(-34_in, 120);
+  chassis.pid_wait_until(-12_in);
+  chassis.pid_speed_max_set(30);
   chassis.pid_wait_until(-32_in);
   clamp_piston.set_value(true);
   chassis.pid_wait();
 
-  //Turn to 4 stack and start intake
-  chassis.pid_turn_set(130, 90);
-  chassis.pid_wait();
-  Intake.move_velocity(400);
+  //Turn to alliance 2 stack
 
-  //Swing into 4 stack and intake 2 rings
-  chassis.pid_odom_set(16_in, 90);
-  chassis.pid_wait_quick();
-  chassis.pid_turn_set(100, 90);
-  chassis.pid_wait_quick();
-  chassis.pid_odom_set(16_in, 75);
-  chassis.pid_wait_quick();
-  pros::delay(250);
+  //Get top ring from 2 stack
 
-  //Back up and turn towards 2 stack
-  chassis.pid_odom_set(-12_in, 75);
-  chassis.pid_wait();
-  chassis.pid_turn_set(25, 90);
-  chassis.pid_wait_quick_chain();
+  //Go backwards and turn towards center rings
 
-  //Intake 2 stack ring
-  chassis.pid_odom_set(14_in, 80);
-  chassis.pid_wait_quick_chain();
-  chassis.pid_odom_set(-4_in, 30);
-  chassis.pid_wait_quick();
+  //Go to closest center ring and put down doinker
 
-  //Turn and drop mogo
+  //Go back with doinker down, put up doinker, turn, and intake center ring
 
-  //Go through ladder and clamp other mogo
+  //Turn towards 2 stack
 
-  //Turn to positive 2 stack
+  //Go to 2 stack and intake ring
 
-  //Intake positive 2 stack
+  //Stop intake about halfway up and drop mogo while turning to rush mogo
+
+  //Go backwards to rush mogo and clamp
+
+  //Score 2 stack ring
 
   //Touch ladder
 
