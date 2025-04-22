@@ -78,13 +78,13 @@ enum Team {
 inline ColorState currentRingColor = NONE;
 inline Team  team = BLUE_TEAM;
 
-inline int  blueLowerHue  = 170;   //---------------> hue values for the sensor to detect
-inline int  blueHigherHue = 255;
-inline int  redLowerHue   = 340;
-inline int  redHigherHue  = 10;
+inline int  blueLowerHue  = 220;   //---------------> hue values for the sensor to detect
+inline int  blueHigherHue = 290;
+inline int  redLowerHue   = 350;
+inline int  redHigherHue  = 30;
 
-inline int timeToTop = 120;        //---------------> for flicking the ring out of the top
-inline int reverseDelay = 80;
+inline int timeToTop = 90;        //---------------> for flicking the ring out of the top
+inline int reverseDelay = 120;
 
 inline bool isSorting     = false; //---------------> is the color sort active
 inline bool sortOverride  = false; //---------------> toggle for color sort being on or off
@@ -103,7 +103,7 @@ inline ColorState getCurrentRingColor() {
   // Adjust these hue values to detect the ring more accurately
   if/*---*/ ((hue > blueLowerHue && hue < blueHigherHue) && saturation > .40) {
     return BLUE;
-  } else if ((hue > redLowerHue || hue < redHigherHue) && saturation > .35) {
+  } else if ((hue > redLowerHue || hue < redHigherHue) && saturation > .40) {
     return RED;
   } 
   // If there isnt something really close to the sensor, there is not a ring
@@ -125,7 +125,7 @@ inline void moveRing() {
   float pastVoltage = Intake.get_voltage();
 
   pros::delay(timeToTop);
-  Intake.move(-100);
+  Intake.move(-127);
   pros::delay(reverseDelay);
   Intake.move(pastVoltage);
 }

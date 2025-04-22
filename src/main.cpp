@@ -145,22 +145,34 @@ void color_sort() {
   }
 pros::Task Color_Sort(color_sort); 
 
-void anti_jam() {
-  pros::delay(2500);
+// void anti_jam() {
+//   pros::delay(2500);
 
-  while(true) {
-    if(Intake.get_efficiency() == 0){
-      Intake.move(-127);
-      pros::delay(80);
-      Intake.move(127);
-    }
-  }
-}
-pros::Task Anti_Jam(anti_jam); 
+//   while(true) {
+//     if(Intake.get_efficiency() <= 50 && Intake.get_torque() >= 1){
+//       float pastVoltage = Intake.get_voltage();
+//       isSorting = true;
+//       Intake.move(-127);
+//       pros::delay(100);
+//       Intake.move(pastVoltage);
+//       isSorting = false;
+//     }
+//   }
+// }
+// pros::Task Anti_Jam(anti_jam); 
 
 void console_display(){   //-------------------------> printing important data to the brain
   pros::delay(2500);
   while (true) {
+    std::string ringStr = "";
+    
+  if(currentRingColor == RED)
+    ringStr = "RED";
+  else if(currentRingColor == BLUE)
+    ringStr = "BLUE";
+  else
+    ringStr = "NONE";;
+
     // Odom stuff
     console.printf("X_COORD: %.3f \n",chassis.odom_x_get()); //------------> x, y, and heading values are printed
     console.printf("Y_COORD: %.3f \n", chassis.odom_y_get());
@@ -176,11 +188,8 @@ void console_display(){   //-------------------------> printing important data t
     console.printf("R3 %.0fC] \n\n", BackR.get_temperature());
     // // Intake & arm
     // console.printf("[INTAKE %.0fC]  ", Intake.get_temperature());
-    // console.printf("Intake Rotation [ %.0f ] \n", intakeRotation.get_position());
-    // // console.printf("Optical Hue [ %.0f ]  ", optical.get_hue());
-    // console.printf("Ring Color [ %s ] \n\n", to_string(currentRingColor));
+    // console.printf("Ring Color [ %s ] \n\n", ringStr);
     // console.printf("[ARM %.0fC]  ", ArmL.get_temperature());
-    // console.printf("Arm Position", to_string(currentArmPosition));
     
     pros::delay(ez::util::DELAY_TIME);
     console.clear(); //------------------------------------------------------> Refreshes screen after delay to save resources
@@ -235,7 +244,6 @@ void competition_initialize() {
 void controller_display() {
   // Initializes the strings for the info
   std::string teamStr = ""; 
-  std::string ringStr = "";
   std::string autoStr = " ";
 
   // Gets the auton name
@@ -252,11 +260,6 @@ void controller_display() {
     teamStr = "R";
   else
     teamStr = "B";
-
-  if(currentRingColor == RED)
-    ringStr = "RED";
-  else
-    ringStr = "BLUE";
 
   // Combines all the strings and prints it as one to the controller screen
   std::string controllerString = teamStr + " A: " + autoStr + "      ";
