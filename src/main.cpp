@@ -71,7 +71,7 @@ void auto_color_sort_select() {
     team = BLUE_TEAM; 
   else if(selector.get_auton()->name == "ElimB-")
     team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "Blue4-M")
+  else if(selector.get_auton()->name == "BMid+")
     team = BLUE_TEAM;  
   else if(selector.get_auton()->name =="BSWP+")
     team = BLUE_TEAM;
@@ -81,21 +81,23 @@ void auto_color_sort_select() {
     team = RED_TEAM;
   else if(selector.get_auton()->name == "ElimR-")
     team = RED_TEAM;
-  else if(selector.get_auton()->name == "Red4-M")
+  else if(selector.get_auton()->name == "RMid+")
     team = RED_TEAM;
   else if(selector.get_auton()->name == "RSWP+")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "Prog")
     team = RED_TEAM;
   else
     sortOverride = true;
 }
 
 void set_starting_arm_position() {
-  if(selector.get_auton()->name == "BRush+" || selector.get_auton()->name == "RRush+")
+  if(selector.get_auton()->name == "BRush+" || selector.get_auton()->name == "RRush+" || selector.get_auton()->name == "Testing"){
     currentArmPosition = HOME;
-  else
+    armPID.target_set(ArmHeights[currentArmPosition]);
+  } 
+  else{
     currentArmPosition = GRAB_RING;
+    armPID.target_set(ArmHeights[currentArmPosition]);
+  }
 }
 
 //                                              <<Chassis constructor>>
@@ -164,7 +166,7 @@ void color_sort() {
   while (true) {
     currentRingColor = getCurrentRingColor();
 
-    if(!sortOverride){ //------------------------------> Only runs if override is off
+    if(!sortOverride && !isIntakeOverheated()){ //------------------------------> Only runs if override is off
       optical.set_led_pwm(100); //--------------> Lights up LED for optical sensor
       if(currentRingColor != NONE)
         sortRing(currentRingColor);
@@ -178,21 +180,21 @@ void color_sort() {
   }
 pros::Task Color_Sort(color_sort); 
 
-// void anti_jam() {
-//   pros::delay(2500);
+void anti_jam() {
+  pros::delay(2500);
 
-//   while(true) {
-//     if(Intake.get_efficiency() <= 50 && Intake.get_torque() >= 1){
-//       float pastVoltage = Intake.get_voltage();
-//       isSorting = true;
-//       Intake.move(-127);
-//       pros::delay(100);
-//       Intake.move(pastVoltage);
-//       isSorting = false;
-//     }
-//   }
-// }
-// pros::Task Anti_Jam(anti_jam); 
+  while(true) {
+    if(Intake.get_efficiency() <= 25 && Intake.get_torque() >= 1.15 && !isIntakeOverheated()){
+      float pastVoltage = Intake.get_voltage();
+      isSorting = true;
+      Intake.move(-127);
+      pros::delay(100);
+      Intake.move(pastVoltage);
+      isSorting = false;
+    }
+  }
+}
+pros::Task Anti_Jam(anti_jam); 
 
 void console_display(){   //-------------------------> printing important data to the brain
   pros::delay(2500);
@@ -204,27 +206,27 @@ void console_display(){   //-------------------------> printing important data t
     else if(currentRingColor == BLUE)
       ringStr = "BLUE";
     else
-      ringStr = "NONE";;
+      ringStr = "NONE";
 
     // Odom stuff
     console.printf("X_COORD: [%.3f]   ",chassis.odom_x_get()); //------------> x, y, and heading values are printed
     console.printf("Y_COORD: [%.3f]\n", chassis.odom_y_get());
     console.printf("HEADING: [%.3f] \n\n", chassis.odom_theta_get());
-    console.printf("BATTERY: %i % \n\n", pros::battery::get_capacity());
+    console.printf("BATTERY: %.0f % \n\n", pros::battery::get_capacity());
     // Drive temps
     console.println("MOTOR_TEMPS:"); //-----------------------------------> Prints the motor temperatures for each motor
-    console.printf("[L1 %iC  ", FrontL.get_temperature()); 
-    console.printf("R1 %iC] \n", FrontR.get_temperature());
-    console.printf("[L2 %iC  ", MidL.get_temperature());
-    console.printf("R2 %iC] \n", MidR.get_temperature());
-    console.printf("[L3 %iC  ", BackL.get_temperature());
-    console.printf("R3 %iC] \n\n", BackR.get_temperature());
+    console.printf("[L1 %.0fC  ", FrontL.get_temperature()); 
+    console.printf("R1 %.0fC] \n", FrontR.get_temperature());
+    console.printf("[L2 %.0fC  ", MidL.get_temperature());
+    console.printf("R2 %.0fC] \n", MidR.get_temperature());
+    console.printf("[L3 %.0fC  ", BackL.get_temperature());
+    console.printf("R3 %.0fC] \n\n", BackR.get_temperature());
     // Intake & arm
-    console.printf("[INTAKE %ifC]   ", Intake.get_temperature());
-    // console.printf("Ring Color [ %s ] \n\n", ringStr);
-    console.printf("[ARM %iC]  ", ArmL.get_temperature());
+    console.printf("[INTAKE %.0fC]   ", checkIntakeTemp());
+    console.printf("[RING %s]\n", (ringStr));
+    console.printf("[ARM %.0fC]  ", (ArmL.get_temperature() + ArmR.get_temperature() / 2));
     
-    pros::delay(ez::util::DELAY_TIME);
+    pros::delay(80);
     console.clear(); //------------------------------------------------------> Refreshes screen after delay to save resources
   }
 }
@@ -283,12 +285,8 @@ void controls() {
   // Left button cycles autons
   if (master.get_digital_new_press(DIGITAL_LEFT)) {
     selector.next_auton(true);
-
     // Automatically sets starting arm position for auto
-    set_starting_arm_position(); 
-
-    // Automatically sets color sorting based on auton
-    auto_color_sort_select();
+    set_starting_arm_position();
   } 
 
   // If not connected to a comp switch, up button runs auto, otherwise it cycles back autons
@@ -389,7 +387,10 @@ void opcontrol() {
   // Preference for driver
   chassis.drive_brake_set(MOTOR_BRAKE_COAST);
 
-  chassis.pid_tuner_disable();
+  chassis.pid_tuner_disable(); 
+
+  // Automatically sets color sorting based on auton
+  auto_color_sort_select();
 
   // Driver control while loop
   while (true) {

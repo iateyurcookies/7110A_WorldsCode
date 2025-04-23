@@ -48,6 +48,17 @@ inline static bool doinkPiston  = false;  //---------------> toggle for doinker
 inline static bool intakePiston = false;  //---------------> toggle for intake piston
 inline static bool doinkClamp   = true;   //---------------> toggle for doinker clamp
 
+inline float checkIntakeTemp() {
+  return Intake.get_temperature();
+}
+
+inline bool isIntakeOverheated() {
+  if(checkIntakeTemp() > 50)
+    return true;
+  else
+    return false;
+}
+
 // Arm PID stuff
 inline ez::PID armPID{.6, 0, 0};
 
@@ -101,9 +112,9 @@ inline ColorState getCurrentRingColor() {
   float saturation = optical.get_saturation();
 
   // Adjust these hue values to detect the ring more accurately
-  if/*---*/ ((hue > blueLowerHue && hue < blueHigherHue) && saturation > .40) {
+  if/*---*/ ((hue > blueLowerHue && hue < blueHigherHue)) {
     return BLUE;
-  } else if ((hue > redLowerHue || hue < redHigherHue) && saturation > .40) {
+  } else if ((hue > redLowerHue || hue < redHigherHue)) {
     return RED;
   } 
   // If there isnt something really close to the sensor, there is not a ring
