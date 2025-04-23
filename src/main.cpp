@@ -12,100 +12,16 @@
 #include "robodash/views/console.hpp"
 #include "subsystems.hpp"
 
-//---------------------------------------------------Initialize important variables-----------------------------------------------------
-
-//                                                    <<Arm PID positions>>
-enum ArmPosition { //--------------------------------> Enums for readability
-  HOME = 0,
-  GRAB_RING,
-  SCORE_RING,
-  AIMING,
-  TIPPING_GOAL,
-  NUM_POSITIONS
-};
-
-const float ArmHeights[NUM_POSITIONS] = {
-  5,    //---------------------------------------> Home
-  150,   //--------------------------------------> Loading Ring
-  1080,  //--------------------------------------> Scoring Ring
-  1500,  //--------------------------------------> Aiming
-  1700,  //--------------------------------------> Tipping Goal
-};
-
-static ArmPosition currentArmPosition = HOME; //----> Sets the default position to down
-
 //--------------------------------------------------------------------------------------------------------------------------------------
 
-//-------------------------------------------------Initialize other stuff---------------------------------------------------------------
-
-//                                         <<Load images from sd>>
-// rd::Image logo("/usd/robotics/logo2.bin", "Logo 1");
-// rd::Image logo2("/usd/robotics/logo.bin", "Logo 2");
-// rd::Image Social15("/usd/robotics/+15.bin", "+15");
-// rd::Image Social1000("/usd/robotics/-100.bin", "+100");
-// rd::Image dhyan("/usd/robotics/dhyan.bin", "Dhyan");
-
-//Initialize console to display important data
-rd::Console console;
-
-//                     <<Initialize auton selector>>
-rd::Selector selector({
-    {"Testing", test},
-    {"QB-(5+1)", QualBlueNegative},
-    {"QR-(5+1)", QualRedNegative},
-    {"BSWP+", BluePositiveAWP},
-    {"RSWP+", RedPositiveAWP},
-    {"ElimB-",sixRingBlueElim},
-    {"ElimR-", sixRingRedElim},
-    {"BRush+", BlueLeftRush},
-    {"RRush+", RedRightRush},
-    {"BMid+",BlueMiddlePositive},
-   {"RMid+", RedMiddlePositive}
-});
-
-void auto_color_sort_select() {
-  // Auto selects color sort
-  if/*-*/(selector.get_auton()->name == "BRush+")
-    team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "QB-(5+1)")
-    team = BLUE_TEAM; 
-  else if(selector.get_auton()->name == "ElimB-")
-    team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "BMid+")
-    team = BLUE_TEAM;  
-  else if(selector.get_auton()->name =="BSWP+")
-    team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "RRush+")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "QR-(5+1)")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "ElimR-")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "RMid+")
-    team = RED_TEAM;
-  else if(selector.get_auton()->name == "RSWP+")
-    team = RED_TEAM;
-  else
-    sortOverride = true;
-}
-
-void set_starting_arm_position() {
-  if(selector.get_auton()->name == "BRush+" || selector.get_auton()->name == "RRush+" || selector.get_auton()->name == "Testing"){
-    currentArmPosition = HOME;
-    armPID.target_set(ArmHeights[currentArmPosition]);
-  } 
-  else{
-    currentArmPosition = GRAB_RING;
-    armPID.target_set(ArmHeights[currentArmPosition]);
-  }
-}
+//----------------------------------------------Initializing stuff, tasks, and fuctions-------------------------------------------------
 
 //                                              <<Chassis constructor>>
 ez::Drive chassis(
-  {10, -9, -20},   // Left Chassis Ports 
-  {-1, 2, 11},    // Right Chassis Ports 
+  {10, -9, -20},  // Left Chassis Ports 
+  {-1, 2, 11},   // Right Chassis Ports 
 
-  14,                                  // IMU Port
+  14,                                 // IMU Port
   3.25,                         // Wheel Diameter
   450                                    // Wheel RPM
 );
@@ -130,10 +46,9 @@ void initialize() {
   ArmL.tare_position();          //-----------------------> Initializes the motor encoder for the arm pid
   ArmL.set_brake_mode(MOTOR_BRAKE_HOLD);
   ArmR.set_brake_mode(MOTOR_BRAKE_HOLD);
-  intakeRotation.reset();
+
   optical.set_integration_time(10);
 
-  doinker_clamp.set_value(true); //-----------------------> Sets the doinker clamp piston to false so it starts closed
   intake_piston.set_value(false);//-----------------------> Sets intake piston to false so it starts down
 
   chassis.odom_tracker_back_set(&horiz_tracker);
@@ -148,8 +63,55 @@ void initialize() {
   pros::screen::erase();
 }
 
+//                                              <<Load images from sd>>
+// rd::Image logo("/usd/robotics/logo2.bin", "Logo 1");
+// rd::Image logo2("/usd/robotics/logo.bin", "Logo 2");
+// rd::Image Social15("/usd/robotics/+15.bin", "+15");
+// rd::Image Social1000("/usd/robotics/-100.bin", "+100");
+// rd::Image dhyan("/usd/robotics/dhyan.bin", "Dhyan");
+
+//Initialize console to display important data
+rd::Console console;
+
+//                                              <<Initialize auton selector>>
+rd::Selector selector({
+    {"Testing", test},
+    {"QB-(5+1)", QualBlueNegative},
+    {"QR-(5+1)", QualRedNegative},
+    {"BSWP+", BluePositiveAWP},
+    {"RSWP+", RedPositiveAWP},
+    {"ElimB-",sixRingBlueElim},
+    {"ElimR-", sixRingRedElim},
+    {"BRush+", BlueLeftRush},
+    {"RRush+", RedRightRush},
+    {"BMid+",BlueMiddlePositive},
+   {"RMid+", RedMiddlePositive}
+});
+
+//                                              <<Arm PID positions>>
+enum ArmPosition { //--------------------------> Enums for readability
+  HOME = 0,
+  GRAB_RING,
+  SCORE_RING,
+  AIMING,
+  TIPPING_GOAL,
+  NUM_POSITIONS
+};
+
+const float ArmHeights[NUM_POSITIONS] = {
+  5,     //--------------------------------> Home
+  150,   //--------------------------------> Loading Ring
+  1080,  //--------------------------------> Scoring Ring
+  1500,  //--------------------------------> Aiming
+  1700,  //--------------------------------> Tipping Goal
+};
+
+// Sets the default position to down
+static ArmPosition currentArmPosition = HOME;
+
+// Arm PID task; Always runs in the background to move the arm to desired target
 void arm_task() {
-  pros::delay(1500);  // Set EZ-Template calibrate before this function starts running
+  pros::delay(2500);  // Set EZ-Template calibrate before this function starts running
   
   while (true) {
     set_arm(armPID.compute(ArmL.get_position()));
@@ -180,6 +142,7 @@ void color_sort() {
   }
 pros::Task Color_Sort(color_sort); 
 
+// Anti jam for the intake; If the motor torque is high and it isn't moving, it moves back briefly
 void anti_jam() {
   pros::delay(2500);
 
@@ -187,6 +150,7 @@ void anti_jam() {
     if(Intake.get_efficiency() <= 25 && Intake.get_torque() >= 1.15 && !isIntakeOverheated()){
       float pastVoltage = Intake.get_voltage();
       isSorting = true;
+      master.rumble(".");
       Intake.move(-127);
       pros::delay(100);
       Intake.move(pastVoltage);
@@ -196,7 +160,8 @@ void anti_jam() {
 }
 pros::Task Anti_Jam(anti_jam); 
 
-void console_display(){   //-------------------------> printing important data to the brain
+// Prints important stuff to the brain
+void console_display(){ 
   pros::delay(2500);
   while (true) {
     std::string ringStr = "";
@@ -209,7 +174,7 @@ void console_display(){   //-------------------------> printing important data t
       ringStr = "NONE";
 
     // Odom stuff
-    console.printf("X_COORD: [%.3f]   ",chassis.odom_x_get()); //------------> x, y, and heading values are printed
+    console.printf("X_COORD: [%.3f]   ",chassis.odom_x_get()); //---------> x, y, and heading values are printed
     console.printf("Y_COORD: [%.3f]\n", chassis.odom_y_get());
     console.printf("HEADING: [%.3f] \n\n", chassis.odom_theta_get());
     console.printf("BATTERY: %.0f % \n\n", pros::battery::get_capacity());
@@ -227,23 +192,12 @@ void console_display(){   //-------------------------> printing important data t
     console.printf("[ARM %.0fC]  ", (ArmL.get_temperature() + ArmR.get_temperature() / 2));
     
     pros::delay(80);
-    console.clear(); //------------------------------------------------------> Refreshes screen after delay to save resources
+    console.clear(); //--------------------------------------------------------> Refreshes screen after delay to save resources
   }
 }
 pros::Task ConsoleUpdate(console_display);
 
-void disabled() {
-  // . . .
-}
-
-void competition_initialize() {
-  // . . .
-}
-
-//--------------------------------------------------------------------------------------------------------------------------------------
-
-//-------------------------------------------------Auton and Driver Control-------------------------------------------------------------
-
+// Prints important stuff to the controller screen
 void controller_display() {
   // Initializes the strings for the info
   std::string teamStr = ""; 
@@ -269,34 +223,68 @@ void controller_display() {
   master.print(0, 1, "%s", (controllerString));
 }
 
+// Arm functions to move between the driver control arm presets
 void next_arm_preset() {
   currentArmPosition = static_cast<ArmPosition>((currentArmPosition + 1) % NUM_POSITIONS);
   armPID.target_set(ArmHeights[currentArmPosition]);
 }
-
 void prev_arm_preset() {
   // Add NUM_POSITIONS before modulo to handle negative case
   currentArmPosition = static_cast<ArmPosition>((currentArmPosition - 1 + NUM_POSITIONS) % NUM_POSITIONS);
   armPID.target_set(ArmHeights[currentArmPosition]);
 }
 
+// Auto selects color sort
+void auto_color_sort_select() {
+  if/*-*/(selector.get_auton()->name == "BRush+")
+    team = BLUE_TEAM;
+  else if(selector.get_auton()->name == "QB-(5+1)")
+    team = BLUE_TEAM; 
+  else if(selector.get_auton()->name == "ElimB-")
+    team = BLUE_TEAM;
+  else if(selector.get_auton()->name == "BMid+")
+    team = BLUE_TEAM;  
+  else if(selector.get_auton()->name =="BSWP+")
+    team = BLUE_TEAM;
+  else if(selector.get_auton()->name == "RRush+")
+    team = RED_TEAM;
+  else if(selector.get_auton()->name == "QR-(5+1)")
+    team = RED_TEAM;
+  else if(selector.get_auton()->name == "ElimR-")
+    team = RED_TEAM;
+  else if(selector.get_auton()->name == "RMid+")
+    team = RED_TEAM;
+  else if(selector.get_auton()->name == "RSWP+")
+    team = RED_TEAM;
+  else
+    sortOverride = true;
+}
+
+// Sets the starting position of the arm for autons
+void set_starting_arm_position() {
+  if(selector.get_auton()->name == "BRush+" || selector.get_auton()->name == "RRush+" || selector.get_auton()->name == "Testing") {
+    currentArmPosition = HOME;
+    armPID.target_set(ArmHeights[currentArmPosition]);
+  } else {
+    currentArmPosition = GRAB_RING;
+    armPID.target_set(ArmHeights[currentArmPosition] + 30);
+  }
+}
+
+// All of the button inputs for the controller in driver control
 void controls() {
 //-----------------------------------------------------------------Setup----------------------------------------------------------------
   // Left button cycles autons
   if (master.get_digital_new_press(DIGITAL_LEFT)) {
-    selector.next_auton(true);
-    // Automatically sets starting arm position for auto
-    set_starting_arm_position();
+    selector.next_auton(true); 
+    // Automatically sets color sorting based on auton
+    auto_color_sort_select();
   } 
 
   // If not connected to a comp switch, up button runs auto, otherwise it cycles back autons
   if (pros::competition::is_connected()) {
     if (master.get_digital_new_press(DIGITAL_UP)) {
       selector.prev_auton(true);
-
-      // Automatically sets starting arm position for auto
-      set_starting_arm_position(); 
-    
       // Automatically sets color sorting based on auton
       auto_color_sort_select();
     }
@@ -306,54 +294,37 @@ void controls() {
     }
   }
 
-  if (master.get_digital_new_press(DIGITAL_L1))
-    toggleColorSort();
-
-  if (master.get_digital_new_press(DIGITAL_L2))
-    sortOverride = !sortOverride;
-
 //--------------------------------------------------------------Pistons-----------------------------------------------------------------
   
-  // Potential auto clamp
+  // Pressing Y will acuate left doinker (is toggle)
   if(master.get_digital_new_press(DIGITAL_Y)) {
+    if (!doinkPistonL) {
+      doinker_left.set_value(true);
+      doinkPistonL = !doinkPistonL;
+    } else {
+      doinker_left.set_value(false);
+      doinkPistonL = !doinkPistonL;
+    }
+  }
+  
+  // Pressing B will acuate right doinker (is toggle)
+  if (master.get_digital_new_press(DIGITAL_B)) {
+    if (!doinkPistonR) {
+      doinker_right.set_value(true);
+      doinkPistonR = !doinkPistonR;
+    } else {
+      doinker_right.set_value(false);
+      doinkPistonR = !doinkPistonR;
+    }
+  }
+
+  // Auto clamp will deactivate if L2 is pressed
+  if (master.get_digital_new_press(DIGITAL_L2)) {
     clamp_piston.set_value(false);
     clampPiston = false;
-  } else if (clampSensor.get_distance() <= distToSensor && !master.get_digital(DIGITAL_Y)) {
+  } else if (clampSensor.get_distance() <= distToSensor) {
     clamp_piston.set_value(true);
     clampPiston = true;
-  }
-  
-  // // Pressing A will acuate the mobile goal clamp (is toggle)
-  // if (master.get_digital_new_press(DIGITAL_Y)) {
-  //   if (!clampPiston) {
-  //     clamp_piston.set_value(true);
-  //     clampPiston = !clampPiston;
-  //   } else {
-  //     clamp_piston.set_value(false);
-  //     clampPiston = !clampPiston;
-  //   }
-  // }
-  
-  // Pressing Y will acuate THE DOINKER (is toggle)
-  if (master.get_digital_new_press(DIGITAL_B)) {
-    if (!doinkPiston) {
-      doinker_piston.set_value(true);
-      doinkPiston = !doinkPiston;
-    } else {
-      doinker_piston.set_value(false);
-      doinkPiston = !doinkPiston;
-    }
-  }
-  
-  // Pressing B will acuate THE DOINKER CLAMP (is toggle)
-  if (master.get_digital_new_press(DIGITAL_A)) {
-    if (!doinkClamp) {
-      doinker_clamp.set_value(true);
-      doinkClamp = !doinkClamp;
-    } else {
-      doinker_clamp.set_value(false);
-      doinkClamp = !doinkClamp;
-    }
   }
 
 //------------------------------------------------------------Arm code------------------------------------------------------------------
@@ -370,15 +341,35 @@ void controls() {
 
   // Pressing R2 will intake, pressing R1 will outake, code stops if its color sorting
   if(!isSorting) {
-    if(master.get_digital(DIGITAL_R1)) {
+    if (master.get_digital(DIGITAL_R1)) {
       Intake.move(127);
-    } else if(master.get_digital(DIGITAL_R2)) {
+    } else if (master.get_digital(DIGITAL_R2)) {
       Intake.move(-127);
     } else {
-    Intake.move(0);
+      Intake.move(0);
+    }
+  } 
+
+  if (master.get_digital_new_press(DIGITAL_L1)) {
+    sortOverride = !sortOverride;
   }
-} 
+   
+  if (master.get_digital_new_press(DIGITAL_B)) {
+    toggleColorSort();
+  }
 }
+
+void disabled() {
+  // . . .
+}
+
+void competition_initialize() {
+  // . . .
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------Auton and Driver Control-------------------------------------------------------------
 
 void opcontrol() {
   // Branding for style points
@@ -389,8 +380,8 @@ void opcontrol() {
 
   chassis.pid_tuner_disable(); 
 
-  // Automatically sets color sorting based on auton
-  auto_color_sort_select();
+  // Automatically sets starting arm position for auto
+  set_starting_arm_position();
 
   // Driver control while loop
   while (true) {
@@ -404,7 +395,8 @@ void opcontrol() {
     // Takes care of all the button tasks 
     controls();
 
-    pros::delay(ez::util::DELAY_TIME);   // This is used for timer calculations keep it ez::util::DELAY_TIME
+    // This is used for timer calculations keep it ez::util::DELAY_TIME
+    pros::delay(ez::util::DELAY_TIME);   
   }
 }
 
@@ -412,7 +404,7 @@ void autonomous() {
   chassis.pid_targets_reset();                          // Resets PID targets to 0
   chassis.drive_imu_reset();                            // Reset gyro position to 0
   chassis.drive_sensor_reset();                         // Reset drive sensors to 0
-  chassis.odom_xyt_set(0_in, 0_in, 0_deg); 
+  chassis.odom_xyt_set(0_in, 0_in, 0_deg);// Sets the default odom position to 0_x,0_y,0_deg
   chassis.drive_brake_set(MOTOR_BRAKE_HOLD);// Set motors to hold. This helps autonomous consistency
   console.focus();
   selector.run_auton();
