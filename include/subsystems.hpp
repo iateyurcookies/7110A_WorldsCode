@@ -32,7 +32,16 @@ inline static bool intakePiston = false;  //--------> toggle for intake piston
 
 // Distance sensor on port 6
 inline::pros::Distance clampSensor(6);
-inline int  distToSensor  = 5;            //--------> how far away the mogo has to be to get clamped
+inline int  distToSensor  = 8;            //--------> how far away the mogo has to be to get clamped
+inline bool letGoMogo = true;
+
+inline void enableAutoClamp(){
+  letGoMogo = false;
+}
+
+inline void disableAutoClamp(){
+  letGoMogo = true;
+}
 
 //Arm Motor, 2 200rpm half watt motors
 inline::pros::Motor ArmL(15, pros::MotorGearset::green);
@@ -84,7 +93,6 @@ enum Team {
   RED_TEAM,
   BLUE_TEAM
 };
-
 //                                                   <<Color sort variables>>
 inline ColorState currentRingColor = NONE;
 inline Team  team = BLUE_TEAM;
@@ -100,6 +108,7 @@ inline int reverseDelay = 120;
 inline bool isSorting     = false; //---------------> is the color sort active
 inline bool sortOverride  = false; //---------------> toggle for color sort being on or off
 
+
 // Toggles between sorting out red or blue rings
 inline void toggleColorSort() {
   if(team == BLUE_TEAM)
@@ -113,13 +122,13 @@ inline ColorState getCurrentRingColor() {
   float hue = optical.get_hue();
   float saturation = optical.get_saturation();
   // If there isn't something really close to the sensor, there isn't a ring
-  if(optical.get_proximity() < 240) {
-    return NONE;
-  } else if ((hue > blueLowerHue && hue < blueHigherHue)) {
+  if ((hue > blueLowerHue && hue < blueHigherHue) && optical.get_proximity() > 240) {
     return BLUE;
-  } else if ((hue > redLowerHue || hue < redHigherHue)) {
+  } else if ((hue > redLowerHue || hue < redHigherHue) && optical.get_proximity() > 240) {
     return RED;
-  } 
+  }
+  return NONE;
+  
 }
 
 // Decides whether or not to sort out the detected ring; Sorts out if the team color and ring color don't match

@@ -8,6 +8,7 @@
 #include "pros/misc.hpp"
 #include "pros/motors.h"
 #include "pros/rtos.hpp"
+#include "pros/screen.hpp"
 #include "robodash/api.h"
 #include "robodash/views/console.hpp"
 #include "subsystems.hpp"
@@ -60,7 +61,6 @@ void initialize() {
 
   chassis.initialize(); //---------------------------------> Initializes chassis and auton selector
   master.rumble(chassis.drive_imu_calibrated() ? "." : "---");
-  pros::screen::erase();
 }
 
 //                                              <<Load images from sd>>
@@ -101,7 +101,7 @@ enum ArmPosition { //--------------------------> Enums for readability
 const float ArmHeights[NUM_POSITIONS] = {
   5,     //--------------------------------> Home
   150,   //--------------------------------> Loading Ring
-  1080,  //--------------------------------> Scoring Ring
+  1100,  //--------------------------------> Scoring Ring
   1500,  //--------------------------------> Aiming
   1700,  //--------------------------------> Tipping Goal
 };
@@ -111,7 +111,7 @@ static ArmPosition currentArmPosition = HOME;
 
 // Arm PID task; Always runs in the background to move the arm to desired target
 void arm_task() {
-  pros::delay(2500);  // Set EZ-Template calibrate before this function starts running
+  pros::delay(2800);  // Set EZ-Template calibrate before this function starts running
   
   while (true) {
     set_arm(armPID.compute(ArmL.get_position()));
@@ -128,7 +128,7 @@ void color_sort() {
   while (true) {
     currentRingColor = getCurrentRingColor();
 
-    if(!sortOverride && !isIntakeOverheated()){ //------------------------------> Only runs if override is off
+    if(!sortOverride){ //------------------------------> Only runs if override is off
       optical.set_led_pwm(100); //--------------> Lights up LED for optical sensor
       if(currentRingColor != NONE)
         sortRing(currentRingColor);
@@ -139,15 +139,27 @@ void color_sort() {
     pros::delay(ez::util::DELAY_TIME);
 
     }
-  }
+}
 pros::Task Color_Sort(color_sort); 
+
+void auto_clamp() {
+  pros::delay(2800);  // Set EZ-Template calibrate before this function starts running
+  
+  while (true) {
+    if(letGoMogo)
+      clamp_piston.set_value(false);
+    else if(clampSensor.get_distance() <= distToSensor)
+      clamp_piston.set_value(true);
+  }
+}
+pros::Task autoClamp(auto_clamp); 
 
 // Anti jam for the intake; If the motor torque is high and it isn't moving, it moves back briefly
 void anti_jam() {
   pros::delay(2500);
 
   while(true) {
-    if(Intake.get_efficiency() <= 25 && Intake.get_torque() >= 1.15 && !isIntakeOverheated()){
+    if(Intake.get_efficiency() <= 25 && Intake.get_torque() >= 1.15){
       float pastVoltage = Intake.get_voltage();
       isSorting = true;
       master.rumble(".");
@@ -156,6 +168,7 @@ void anti_jam() {
       Intake.move(pastVoltage);
       isSorting = false;
     }
+    pros::delay(ez::util::DELAY_TIME);
   }
 }
 pros::Task Anti_Jam(anti_jam); 
@@ -164,15 +177,6 @@ pros::Task Anti_Jam(anti_jam);
 void console_display(){ 
   pros::delay(2500);
   while (true) {
-    std::string ringStr = "";
-    
-    if(currentRingColor == RED)
-      ringStr = "RED";
-    else if(currentRingColor == BLUE)
-      ringStr = "BLUE";
-    else
-      ringStr = "NONE";
-
     // Odom stuff
     console.printf("X_COORD: [%.3f]   ",chassis.odom_x_get()); //---------> x, y, and heading values are printed
     console.printf("Y_COORD: [%.3f]\n", chassis.odom_y_get());
@@ -187,11 +191,10 @@ void console_display(){
     console.printf("[L3 %.0fC  ", BackL.get_temperature());
     console.printf("R3 %.0fC] \n\n", BackR.get_temperature());
     // Intake & arm
-    console.printf("[INTAKE %.0fC]   ", checkIntakeTemp());
-    console.printf("[RING %s]\n", (ringStr));
-    console.printf("[ARM %.0fC]  ", (ArmL.get_temperature() + ArmR.get_temperature() / 2));
+    console.printf("[ARM %.0fC]  ", (ArmL.get_temperature()));
+    console.printf("[INTAKE: %.0f]", checkIntakeTemp());
     
-    pros::delay(80);
+    pros::delay(ez::util::DELAY_TIME);
     console.clear(); //--------------------------------------------------------> Refreshes screen after delay to save resources
   }
 }
@@ -262,12 +265,12 @@ void auto_color_sort_select() {
 
 // Sets the starting position of the arm for autons
 void set_starting_arm_position() {
-  if(selector.get_auton()->name == "BRush+" || selector.get_auton()->name == "RRush+" || selector.get_auton()->name == "Testing") {
+  if(selector.get_auton()->name == "Testing" || selector.get_auton().has_value() == false) {
     currentArmPosition = HOME;
     armPID.target_set(ArmHeights[currentArmPosition]);
   } else {
     currentArmPosition = GRAB_RING;
-    armPID.target_set(ArmHeights[currentArmPosition] + 30);
+    armPID.target_set(ArmHeights[currentArmPosition]);
   }
 }
 
@@ -277,16 +280,12 @@ void controls() {
   // Left button cycles autons
   if (master.get_digital_new_press(DIGITAL_LEFT)) {
     selector.next_auton(true); 
-    // Automatically sets color sorting based on auton
-    auto_color_sort_select();
   } 
 
   // If not connected to a comp switch, up button runs auto, otherwise it cycles back autons
   if (pros::competition::is_connected()) {
     if (master.get_digital_new_press(DIGITAL_UP)) {
       selector.prev_auton(true);
-      // Automatically sets color sorting based on auton
-      auto_color_sort_select();
     }
   } else if(!pros::competition::is_connected()){
     if (master.get_digital_new_press(DIGITAL_UP)) {
@@ -319,12 +318,10 @@ void controls() {
   }
 
   // Auto clamp will deactivate if L2 is pressed
-  if (master.get_digital_new_press(DIGITAL_L2)) {
-    clamp_piston.set_value(false);
-    clampPiston = false;
-  } else if (clampSensor.get_distance() <= distToSensor) {
-    clamp_piston.set_value(true);
-    clampPiston = true;
+  if (master.get_digital(DIGITAL_L2)) {
+    disableAutoClamp();
+  } else {
+    enableAutoClamp();
   }
 
 //------------------------------------------------------------Arm code------------------------------------------------------------------
@@ -373,7 +370,7 @@ void competition_initialize() {
 
 void opcontrol() {
   // Branding for style points
-  // logo.focus();
+  console.focus();
 
   // Preference for driver
   chassis.drive_brake_set(MOTOR_BRAKE_COAST);
@@ -383,9 +380,12 @@ void opcontrol() {
   // Automatically sets starting arm position for auto
   set_starting_arm_position();
 
+  // Automatically sets color sorting based on auton
+  auto_color_sort_select();
+
   // Driver control while loop
   while (true) {
-
+    
     // Standard split arcade(left stick = forward-back | right stick = turning)
     chassis.opcontrol_arcade_standard(ez::SPLIT);
 
@@ -406,6 +406,5 @@ void autonomous() {
   chassis.drive_sensor_reset();                         // Reset drive sensors to 0
   chassis.odom_xyt_set(0_in, 0_in, 0_deg);// Sets the default odom position to 0_x,0_y,0_deg
   chassis.drive_brake_set(MOTOR_BRAKE_HOLD);// Set motors to hold. This helps autonomous consistency
-  console.focus();
   selector.run_auton();
 }
