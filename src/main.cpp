@@ -22,7 +22,7 @@ ez::Drive chassis(
   {10, -9, -20},  // Left Chassis Ports 
   {-1, 2, 11},   // Right Chassis Ports 
 
-  14,                                 // IMU Port
+  17,                                 // IMU Port
   3.25,                         // Wheel Diameter
   450                                    // Wheel RPM
 );
@@ -64,28 +64,21 @@ void initialize() {
 }
 
 //                                              <<Load images from sd>>
-// rd::Image logo("/usd/robotics/logo2.bin", "Logo 1");
-// rd::Image logo2("/usd/robotics/logo.bin", "Logo 2");
-// rd::Image Social15("/usd/robotics/+15.bin", "+15");
-// rd::Image Social1000("/usd/robotics/-100.bin", "+100");
-// rd::Image dhyan("/usd/robotics/dhyan.bin", "Dhyan");
+rd::Image logo("/usd/robotics/logo.bin", "Logo 1");
 
 //Initialize console to display important data
 rd::Console console;
 
 //                                              <<Initialize auton selector>>
 rd::Selector selector({
-    {"Testing", test},
     {"QB-(5+1)", QualBlueNegative},
     {"QR-(5+1)", QualRedNegative},
     {"BSWP+", BluePositiveAWP},
     {"RSWP+", RedPositiveAWP},
     {"ElimB-",sixRingBlueElim},
     {"ElimR-", sixRingRedElim},
-    {"BRush+", BlueLeftRush},
-    {"RRush+", RedRightRush},
-    {"BMid+",BlueMiddlePositive},
-   {"RMid+", RedMiddlePositive}
+    {"B6+",BlueMiddlePositive},
+    {"R6+", RedMiddlePositive}
 });
 
 //                                              <<Arm PID positions>>
@@ -100,7 +93,7 @@ enum ArmPosition { //--------------------------> Enums for readability
 
 const float ArmHeights[NUM_POSITIONS] = {
   5,     //--------------------------------> Home
-  150,   //--------------------------------> Loading Ring
+  135,   //--------------------------------> Loading Ring
   1100,  //--------------------------------> Scoring Ring
   1500,  //--------------------------------> Aiming
   1700,  //--------------------------------> Tipping Goal
@@ -111,7 +104,7 @@ static ArmPosition currentArmPosition = HOME;
 
 // Arm PID task; Always runs in the background to move the arm to desired target
 void arm_task() {
-  pros::delay(2800);  // Set EZ-Template calibrate before this function starts running
+  pros::delay(2500);  // Set EZ-Template calibrate before this function starts running
   
   while (true) {
     set_arm(armPID.compute(ArmL.get_position()));
@@ -125,7 +118,7 @@ pros::Task Arm_Task(arm_task);
 void color_sort() {
   pros::delay(2500);
 
-  while (true) {
+  while (!isIntakeOverheated()) { //-------------------> Shuts off if the intake is too hot
     currentRingColor = getCurrentRingColor();
 
     if(!sortOverride){ //------------------------------> Only runs if override is off
@@ -143,35 +136,17 @@ void color_sort() {
 pros::Task Color_Sort(color_sort); 
 
 void auto_clamp() {
-  pros::delay(2800);  // Set EZ-Template calibrate before this function starts running
+  pros::delay(2500);  // Set EZ-Template calibrate before this function starts running
   
   while (true) {
     if(letGoMogo)
       clamp_piston.set_value(false);
     else if(clampSensor.get_distance() <= distToSensor)
       clamp_piston.set_value(true);
-  }
-}
-pros::Task autoClamp(auto_clamp); 
-
-// Anti jam for the intake; If the motor torque is high and it isn't moving, it moves back briefly
-void anti_jam() {
-  pros::delay(2500);
-
-  while(true) {
-    if(Intake.get_efficiency() <= 25 && Intake.get_torque() >= 1.15){
-      float pastVoltage = Intake.get_voltage();
-      isSorting = true;
-      master.rumble(".");
-      Intake.move(-127);
-      pros::delay(100);
-      Intake.move(pastVoltage);
-      isSorting = false;
-    }
     pros::delay(ez::util::DELAY_TIME);
   }
 }
-pros::Task Anti_Jam(anti_jam); 
+pros::Task autoClamp(auto_clamp); 
 
 // Prints important stuff to the brain
 void console_display(){ 
@@ -191,8 +166,8 @@ void console_display(){
     console.printf("[L3 %.0fC  ", BackL.get_temperature());
     console.printf("R3 %.0fC] \n\n", BackR.get_temperature());
     // Intake & arm
-    console.printf("[ARM %.0fC]  ", (ArmL.get_temperature()));
-    console.printf("[INTAKE: %.0f]", checkIntakeTemp());
+    console.printf("[ARM %.0fC]\n", (ArmL.get_temperature()));
+    console.printf("[INTAKE: %.0fC]", checkIntakeTemp());
     
     pros::delay(ez::util::DELAY_TIME);
     console.clear(); //--------------------------------------------------------> Refreshes screen after delay to save resources
@@ -245,7 +220,7 @@ void auto_color_sort_select() {
     team = BLUE_TEAM; 
   else if(selector.get_auton()->name == "ElimB-")
     team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "BMid+")
+  else if(selector.get_auton()->name == "B6+")
     team = BLUE_TEAM;  
   else if(selector.get_auton()->name =="BSWP+")
     team = BLUE_TEAM;
@@ -255,7 +230,7 @@ void auto_color_sort_select() {
     team = RED_TEAM;
   else if(selector.get_auton()->name == "ElimR-")
     team = RED_TEAM;
-  else if(selector.get_auton()->name == "RMid+")
+  else if(selector.get_auton()->name == "R6+")
     team = RED_TEAM;
   else if(selector.get_auton()->name == "RSWP+")
     team = RED_TEAM;
@@ -265,7 +240,7 @@ void auto_color_sort_select() {
 
 // Sets the starting position of the arm for autons
 void set_starting_arm_position() {
-  if(selector.get_auton()->name == "Testing" || selector.get_auton().has_value() == false) {
+  if(selector.get_auton().has_value() == false || selector.get_auton()->name == "B6+" || selector.get_auton()->name == "R6+") {
     currentArmPosition = HOME;
     armPID.target_set(ArmHeights[currentArmPosition]);
   } else {
@@ -314,6 +289,17 @@ void controls() {
     } else {
       doinker_right.set_value(false);
       doinkPistonR = !doinkPistonR;
+    }
+  }
+
+  // Pressing A will acuate right doinker (is toggle)
+  if (master.get_digital_new_press(DIGITAL_A)) {
+    if (!intakePiston) {
+      intake_piston.set_value(true);
+      intakePiston = !intakePiston;
+    } else {
+      intake_piston.set_value(false);
+      intakePiston = !intakePiston;
     }
   }
 
@@ -383,6 +369,8 @@ void opcontrol() {
   // Automatically sets color sorting based on auton
   auto_color_sort_select();
 
+  distToSensor = 10;
+
   // Driver control while loop
   while (true) {
     
@@ -401,10 +389,26 @@ void opcontrol() {
 }
 
 void autonomous() {
+  // Anti jam for the intake; If the motor torque is high and it isn't moving, it moves back briefly
+  // pros::Task anti_jam{[=]{
+  //   while (!isIntakeOverheated()) {
+  //     if(Intake.get_efficiency() <= 25 && Intake.get_torque() >= 1.15){
+  //       float pastVoltage = Intake.get_voltage();
+  //       isSorting = true;
+  //       Intake.move(-127);
+  //       pros::delay(100);
+  //       Intake.move(pastVoltage);
+  //       isSorting = false;
+  //     }
+  //     pros::delay(ez::util::DELAY_TIME);
+  //   }
+  // }};
+  distToSensor = 8;
   chassis.pid_targets_reset();                          // Resets PID targets to 0
   chassis.drive_imu_reset();                            // Reset gyro position to 0
   chassis.drive_sensor_reset();                         // Reset drive sensors to 0
   chassis.odom_xyt_set(0_in, 0_in, 0_deg);// Sets the default odom position to 0_x,0_y,0_deg
   chassis.drive_brake_set(MOTOR_BRAKE_HOLD);// Set motors to hold. This helps autonomous consistency
+  console.focus();
   selector.run_auton();
 }

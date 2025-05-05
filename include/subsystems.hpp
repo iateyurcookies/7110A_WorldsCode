@@ -25,14 +25,13 @@ inline::pros::adi::DigitalOut doinker_right(3);
 inline::pros::adi::DigitalOut intake_piston(4);
 
 //                                                   <<Piston variables>>
-inline static bool clampPiston  = false;  //--------> toggle for mogo clamp
 inline static bool doinkPistonL = false;  //--------> toggle for left doinker
 inline static bool doinkPistonR = false;  //--------> toggle for right doinker
 inline static bool intakePiston = false;  //--------> toggle for intake piston
 
 // Distance sensor on port 6
 inline::pros::Distance clampSensor(6);
-inline int  distToSensor  = 8;            //--------> how far away the mogo has to be to get clamped
+inline int  distToSensor;                 //--------> how far away the mogo has to be to get clamped
 inline bool letGoMogo = true;
 
 inline void enableAutoClamp(){
@@ -43,11 +42,18 @@ inline void disableAutoClamp(){
   letGoMogo = true;
 }
 
+inline bool isGoalInClamp(){
+  if(clampSensor.get_distance() <= distToSensor)
+    return true;
+  else
+    return false;
+}
+
 //Arm Motor, 2 200rpm half watt motors
 inline::pros::Motor ArmL(15, pros::MotorGearset::green);
 inline::pros::Motor ArmR(-18, pros::MotorGearset::green);
 // Arm PID initialization
-inline ez::PID armPID{.6, 0, 0};
+inline ez::PID armPID{.6, 0, 1};
 
 // Moves both motors for the arm based on input variable
 inline void set_arm(int input) {
@@ -93,6 +99,7 @@ enum Team {
   RED_TEAM,
   BLUE_TEAM
 };
+
 //                                                   <<Color sort variables>>
 inline ColorState currentRingColor = NONE;
 inline Team  team = BLUE_TEAM;
@@ -107,7 +114,6 @@ inline int reverseDelay = 120;
 
 inline bool isSorting     = false; //---------------> is the color sort active
 inline bool sortOverride  = false; //---------------> toggle for color sort being on or off
-
 
 // Toggles between sorting out red or blue rings
 inline void toggleColorSort() {
