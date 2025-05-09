@@ -48,6 +48,8 @@ void initialize() {
   ArmL.set_brake_mode(MOTOR_BRAKE_HOLD);
   ArmR.set_brake_mode(MOTOR_BRAKE_HOLD);
 
+  Intake.set_brake_mode(MOTOR_BRAKE_COAST);
+
   optical.set_integration_time(10);
 
   intake_piston.set_value(false);//-----------------------> Sets intake piston to false so it starts down
@@ -77,8 +79,10 @@ rd::Selector selector({
     {"RSWP+", RedPositiveAWP},
     {"ElimB-",sixRingBlueElim},
     {"ElimR-", sixRingRedElim},
-    {"B6+",BlueMiddlePositive},
-    {"R6+", RedMiddlePositive}
+    {"B5+",BlueMiddlePositive},
+    {"R5+", RedMiddlePositive},
+    {"B3+",Positive3Blue},
+    {"R3+", Positive3Red}
 });
 
 //                                              <<Arm PID positions>>
@@ -93,7 +97,7 @@ enum ArmPosition { //--------------------------> Enums for readability
 
 const float ArmHeights[NUM_POSITIONS] = {
   5,     //--------------------------------> Home
-  135,   //--------------------------------> Loading Ring
+  140,   //--------------------------------> Loading Ring
   1100,  //--------------------------------> Scoring Ring
   1500,  //--------------------------------> Aiming
   1700,  //--------------------------------> Tipping Goal
@@ -220,8 +224,10 @@ void auto_color_sort_select() {
     team = BLUE_TEAM; 
   else if(selector.get_auton()->name == "ElimB-")
     team = BLUE_TEAM;
-  else if(selector.get_auton()->name == "B6+")
+  else if(selector.get_auton()->name == "B5+")
     team = BLUE_TEAM;  
+  else if(selector.get_auton()->name == "B3+")
+    team = BLUE_TEAM; 
   else if(selector.get_auton()->name =="BSWP+")
     team = BLUE_TEAM;
   else if(selector.get_auton()->name == "RRush+")
@@ -230,8 +236,10 @@ void auto_color_sort_select() {
     team = RED_TEAM;
   else if(selector.get_auton()->name == "ElimR-")
     team = RED_TEAM;
-  else if(selector.get_auton()->name == "R6+")
+  else if(selector.get_auton()->name == "R5+")
     team = RED_TEAM;
+  else if(selector.get_auton()->name == "R3+")
+    team = RED_TEAM; 
   else if(selector.get_auton()->name == "RSWP+")
     team = RED_TEAM;
   else
@@ -240,7 +248,11 @@ void auto_color_sort_select() {
 
 // Sets the starting position of the arm for autons
 void set_starting_arm_position() {
-  if(selector.get_auton().has_value() == false || selector.get_auton()->name == "B6+" || selector.get_auton()->name == "R6+") {
+  if(selector.get_auton().has_value() == false 
+  || selector.get_auton()->name == "B5+" 
+  || selector.get_auton()->name == "R5+"
+  || selector.get_auton()->name == "B3+" 
+  || selector.get_auton()->name == "R3+") {
     currentArmPosition = HOME;
     armPID.target_set(ArmHeights[currentArmPosition]);
   } else {
@@ -392,7 +404,7 @@ void autonomous() {
   // Anti jam for the intake; If the motor torque is high and it isn't moving, it moves back briefly
   // pros::Task anti_jam{[=]{
   //   while (!isIntakeOverheated()) {
-  //     if(Intake.get_efficiency() <= 25 && Intake.get_torque() >= 1.15){
+  //     if(Intake.get_efficiency() <= 25 && Intake.get_torque() >= 1.16){
   //       float pastVoltage = Intake.get_voltage();
   //       isSorting = true;
   //       Intake.move(-127);
@@ -403,12 +415,12 @@ void autonomous() {
   //     pros::delay(ez::util::DELAY_TIME);
   //   }
   // }};
-  distToSensor = 8;
+  distToSensor = 6;
   chassis.pid_targets_reset();                          // Resets PID targets to 0
   chassis.drive_imu_reset();                            // Reset gyro position to 0
   chassis.drive_sensor_reset();                         // Reset drive sensors to 0
-  chassis.odom_xyt_set(0_in, 0_in, 0_deg);// Sets the default odom position to 0_x,0_y,0_deg
   chassis.drive_brake_set(MOTOR_BRAKE_HOLD);// Set motors to hold. This helps autonomous consistency
+  Intake.set_brake_mode(MOTOR_BRAKE_COAST);
   console.focus();
   selector.run_auton();
 }
