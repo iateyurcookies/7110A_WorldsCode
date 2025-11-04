@@ -80,7 +80,6 @@ void default_constants() {
   chassis.drive_imu_scaler_set(1.006);
 
   // The amount that turns are prioritized over driving in odom motions
-  // - if you have tracking wheels, you can run this higher.  1.0 is the max
   chassis.odom_turn_bias_set(.8);
 
   chassis.odom_look_ahead_set(7_in);         // This is how far ahead in the path the robot looks at
@@ -256,6 +255,22 @@ void sixRingRedElim(){
 
   //Drive full speed to positive corner
 
+}
+
+inline void goUntilSensed()
+{
+  Intake.move_velocity(200);
+  if(clampSensor.get_distance() < distToSensor)
+  {
+    Intake.move_velocity(0);
+  }
+}
+
+void example(){
+  // set the target distance to however far u need and it should stop intaking when sensed
+  chassis.pid_drive_set(20_in, 110, true);
+  goUntilSensed();
+  chassis.pid_wait_quick();
 }
 
 void BlueMiddlePositive(){

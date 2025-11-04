@@ -29,10 +29,14 @@ inline static bool doinkPistonL = false;  //--------> toggle for left doinker
 inline static bool doinkPistonR = false;  //--------> toggle for right doinker
 inline static bool intakePiston = false;  //--------> toggle for intake piston
 
+// Intake Motors, 1 200 rpm green cart for hooks
+inline::pros::Motor Intake(21, pros::MotorGearset::green);
+
 // Distance sensor on port 6
 inline::pros::Distance clampSensor(6);
 inline int  distToSensor;                 //--------> how far away the mogo has to be to get clamped
 inline bool letGoMogo = true;
+
 
 inline void enableAutoClamp(){
   letGoMogo = false;
@@ -68,8 +72,6 @@ inline void arm_wait() {
   }
 }
 
-// Intake Motors, 1 200 rpm green cart for hooks
-inline::pros::Motor Intake(21, pros::MotorGearset::green);
 
 // Checks the intake temperature
 inline float checkIntakeTemp() {
